@@ -148,3 +148,105 @@ For detailed API documentation, visit:
 - [Headlamp Plugin API Reference](https://headlamp.dev/docs/latest/development/api/)
 - [Plugin Development Guide](https://headlamp.dev/docs/latest/development/plugins/)
 - [UI Component Storybook](https://headlamp.dev/docs/latest/development/frontend/#storybook)
+
+## This Plugin: Crossplane Inspector
+
+### Routing — Always Use HeadlampLink
+
+Headlamp prefixes all routes with `/c/:cluster/`. Never use react-router-dom `<Link to="/crossplane/...">` — it produces bare paths that 404. Always use Headlamp's `Link` component with `routeName`:
+
+```tsx
+import { Link as HeadlampLink } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+
+<HeadlampLink routeName="crossplane-xrd-detail" params={{ name: r.metadata.name }}>
+  {r.metadata.name}
+</HeadlampLink>
+```
+
+### Fetching Dynamic CRD Resources
+
+Crossplane XRs and Claims live under user-defined API groups. You cannot `GET /apis/{group}/{version}/{plural}/{name}` directly — some clusters return 404 for individual resource GETs even when the list works. The reliable pattern is to fetch the list and filter:
+
+```ts
+const list = await request(`/apis/${group}/${version}/${plural}`);
+const item = (list.items ?? []).find((r: any) => r.metadata.name === name);
+```
+
+To resolve plural names dynamically (e.g., from an apiVersion + kind pair), call the discovery endpoint:
+
+```ts
+const discovery = await request(`/apis/${group}/${version}`);
+const resource = discovery.resources.find((r: any) => r.kind === kind && !r.name.includes('/'));
+const plural = resource?.name ?? kind.toLowerCase() + 's';
+```
+
+Use a module-level `Map` to cache these lookups and avoid redundant API calls (see `src/components/ManagedResources.tsx`).
+
+### Crossplane API Groups
+
+- `pkg.crossplane.io/v1` — Provider, Configuration, ProviderRevision
+- `apiextensions.crossplane.io/v1` — CompositeResourceDefinition, Composition
+- XRs and Claims: user-defined group, discovered via XRD `spec.group` + `spec.names.plural`
+
+### Condition Helpers
+
+Two helpers exist for checking conditions depending on the data shape:
+
+- `conditionStatus(resource, type)` — for KubeObject instances (accesses `.jsonData.status.conditions`)
+- `rawConditionStatus(conditions, type)` — for raw API response JSON (accesses `.status.conditions` directly)
+
+Both return `'True'`, `'False'`, or `'Unknown'`. The `StatusChip` component renders green/red/yellow accordingly.
+
+### Crossplane v2 Spec Layout
+
+Some clusters run Crossplane v2, which nests internal fields under `spec.crossplane` instead of directly on `spec`. Always use the fallback pattern when reading these fields:
+
+```ts
+xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs
+xr.spec?.crossplane?.resourceRef  ?? xr.spec?.resourceRef
+xr.spec?.crossplane?.compositionRef ?? xr.spec?.compositionRef
+xr.spec?.crossplane?.claimRef ?? xr.spec?.claimRef
+```
+
+Without the fallback, these fields will silently return `undefined` on v2 clusters.
+
+### Live Updates via Dynamic KubeObject Classes
+
+For detail pages on user-defined CRDs (XRs, Claims, MRs), create a dynamic KubeObject subclass in `useMemo` and use `useList()` to get the same WebSocket watch stream that Flux and other Headlamp plugins use:
+
+```tsx
+const XRClass = useMemo(() => {
+  class DynamicXR extends KubeObject {
+    static kind = plural;
+    static apiName = plural;
+    static apiVersion = `${group}/${version}`;
+    static isNamespaced = false;
+  }
+  return DynamicXR;
+}, [group, version, plural]);
+
+const [xrs, error] = XRClass.useList();
+const xr = useMemo(
+  () => xrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
+  [xrs, name]
+);
+```
+
+This avoids both the GET-by-name 404 issue and the need for polling — the SDK handles the watch stream automatically.
+
+### List Responses May Omit Spec
+
+Kubernetes sometimes strips `spec` fields from list responses to reduce payload size. If a detail page needs the full spec (e.g., the MR detail Spec section), try GET-by-name first and fall back to list-and-find:
+
+```ts
+request(`/apis/${group}/${version}/${plural}/${name}`)
+  .catch(() =>
+    request(`/apis/${group}/${version}/${plural}`).then((data: any) => {
+      const found = (data.items ?? []).find((r: any) => r.metadata.name === name);
+      if (!found) throw new Error('not found');
+      return found;
+    })
+  )
+```
+
+Use `useList()` (via dynamic KubeObject) for live status/conditions, and this GET pattern separately for the spec.
