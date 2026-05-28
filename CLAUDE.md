@@ -184,9 +184,38 @@ Use a module-level `Map` to cache these lookups and avoid redundant API calls (s
 
 ### Crossplane API Groups
 
-- `pkg.crossplane.io/v1` — Provider, Configuration, ProviderRevision
+- `pkg.crossplane.io/v1` — Provider, Configuration, ProviderRevision, ConfigurationRevision
+- `pkg.crossplane.io/v1beta1` — Function, FunctionRevision
 - `apiextensions.crossplane.io/v1` — CompositeResourceDefinition, Composition
 - XRs and Claims: user-defined group, discovered via XRD `spec.group` + `spec.names.plural`
+
+### Status Chips in Section Headers
+
+To place a status chip inline with a section title (without shrinking the heading font), use `SectionBox`'s `headerProps.titleSideActions`. Wrapping the title in a `<Box>` instead causes `SectionBox` to treat it as a ReactNode and skip the heading typography.
+
+```tsx
+<SectionBox title={name} headerProps={{ titleSideActions: [
+  <Chip size="small" label={overallOk ? 'Ready' : 'Not Ready'} color={overallOk ? 'success' : 'error'} />,
+] }}>
+```
+
+### Pitfalls
+
+**Do not name KubeObject subclasses after JS built-ins.** `export class Function extends KubeObject` shadows the global `Function` constructor and crashes the entire plugin module at load time with no useful error message. Use a prefixed name like `CrossplaneFunction` instead.
+
+**Do not import from `@mui/icons-material`.** It pulls in `createSvgIcon` via `@mui/material/utils`, which is not in Headlamp's Vite externals list. The import resolves to `undefined` at runtime and crashes the plugin. Use `@iconify/react` for all icons:
+
+```tsx
+import { Icon } from '@iconify/react';
+<Icon icon="mdi:information-outline" width={20} />
+```
+
+### Discovering Managed Resource Types
+
+Two approaches, used together as a fallback chain (see `src/managed/List.tsx`):
+
+1. **Label selector** — fast, server-side: `GET /apis/apiextensions.k8s.io/v1/customresourcedefinitions?labelSelector=crossplane.io%2Fresource%3Dmanaged`
+2. **Category filter** — fallback for older providers that don't set the label: fetch all CRDs and filter where `spec.names.categories` includes `'managed'`
 
 ### Condition Helpers
 
