@@ -1,10 +1,13 @@
 import { registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
 import { ClaimDetail } from './claims/Detail';
-import { ConfigurationDetail } from './configurations/Detail';
 import { CompositeDetail } from './composite/Detail';
 import { CompositionDetail } from './compositions/Detail';
-import { CompositionList } from './compositions/List';
+import { ConfigurationDetail } from './configurations/Detail';
+import { FunctionDetail } from './functions/Detail';
+import { FunctionList } from './functions/List';
 import { ManagedResourceDetail } from './managed/Detail';
+import { ManagedResourceBrowser } from './managed/List';
+import { ManagedResourceTypeList } from './managed/TypeList';
 import { CrossplaneOverview } from './overview';
 import { ProviderDetail } from './providers/Detail';
 import { XRDDetail } from './xrds/Detail';
@@ -34,10 +37,18 @@ registerSidebarEntry({
 
 registerSidebarEntry({
   parent: 'crossplane',
-  name: 'crossplane-compositions',
-  label: 'Compositions',
-  url: '/crossplane/compositions',
+  name: 'crossplane-functions',
+  label: 'Functions',
+  url: '/crossplane/functions',
 });
+
+registerSidebarEntry({
+  parent: 'crossplane',
+  name: 'crossplane-managed-resources',
+  label: 'Managed Resources',
+  url: '/crossplane/managed-resources',
+});
+
 
 registerRoute({
   path: '/crossplane/overview',
@@ -63,6 +74,21 @@ registerRoute({
 });
 
 registerRoute({
+  path: '/crossplane/functions',
+  sidebar: 'crossplane-functions',
+  component: () => <FunctionList />,
+  exact: true,
+  name: 'crossplane-functions',
+});
+
+registerRoute({
+  path: '/crossplane/functions/:name',
+  sidebar: 'crossplane-functions',
+  component: () => <FunctionDetail />,
+  name: 'crossplane-function-detail',
+});
+
+registerRoute({
   path: '/crossplane/providers/:name',
   sidebar: 'crossplane-overview',
   component: () => <ProviderDetail />,
@@ -77,16 +103,8 @@ registerRoute({
 });
 
 registerRoute({
-  path: '/crossplane/compositions',
-  sidebar: 'crossplane-compositions',
-  component: () => <CompositionList />,
-  exact: true,
-  name: 'crossplane-compositions',
-});
-
-registerRoute({
   path: '/crossplane/compositions/:name',
-  sidebar: 'crossplane-compositions',
+  sidebar: 'crossplane-xrds',
   component: () => <CompositionDetail />,
   name: 'crossplane-composition-detail',
 });
@@ -110,4 +128,19 @@ registerRoute({
   sidebar: 'crossplane-xrds',
   component: () => <ManagedResourceDetail />,
   name: 'crossplane-managed-detail',
+});
+
+registerRoute({
+  path: '/crossplane/managed-resources',
+  sidebar: 'crossplane-managed-resources',
+  component: () => <ManagedResourceBrowser />,
+  exact: true,
+  name: 'crossplane-managed-resources',
+});
+
+registerRoute({
+  path: '/crossplane/managed-resources/:group/:version/:plural/:kind',
+  sidebar: 'crossplane-managed-resources',
+  component: () => <ManagedResourceTypeList />,
+  name: 'crossplane-managed-type',
 });

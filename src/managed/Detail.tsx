@@ -6,7 +6,7 @@ import {
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
-import { Alert, Box } from '@mui/material';
+import { Alert, Box, Chip } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
@@ -72,36 +72,18 @@ export function ManagedResourceDetail() {
   const conditions: any[] = mr.status?.conditions ?? [];
   const ready = rawConditionStatus(conditions, 'Ready');
   const synced = rawConditionStatus(conditions, 'Synced');
-  const failingCond = conditions.find(
-    (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
-  );
   const overallOk = ready === 'True' && synced === 'True';
 
   return (
     <Box pb={6}>
       <BackLink />
 
-      <Box px={2} pt={2}>
-        {overallOk ? (
-          <Alert severity="success">Ready and synced</Alert>
-        ) : synced !== 'True' ? (
-          <Alert severity="error">
-            <strong>Sync failed</strong>
-            {failingCond?.reason && ` — ${failingCond.reason}`}
-            {failingCond?.message && `: ${failingCond.message}`}
-          </Alert>
-        ) : ready !== 'True' ? (
-          <Alert severity="warning">
-            <strong>Not ready</strong>
-            {failingCond?.reason && ` — ${failingCond.reason}`}
-            {failingCond?.message && `: ${failingCond.message}`}
-          </Alert>
-        ) : (
-          <Alert severity="warning">Status unknown</Alert>
-        )}
-      </Box>
-
-      <SectionBox title={name}>
+      <SectionBox title={name} headerProps={{ titleSideActions: [
+        <Chip size="small"
+          label={overallOk ? 'Ready' : synced !== 'True' ? 'Sync Failed' : ready !== 'True' ? 'Not Ready' : 'Unknown'}
+          color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
+        />,
+      ] }}>
         <NameValueTable
           rows={[
             { name: 'Kind', value: mr.kind },

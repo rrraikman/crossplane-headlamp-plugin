@@ -4,7 +4,7 @@ import {
   NameValueTable,
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Alert, Box } from '@mui/material';
+import { Box, Chip } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { Configuration, ConfigurationRevision } from '../resources';
@@ -24,35 +24,17 @@ export function ConfigurationDetail() {
   const healthy = conditionStatus(configuration, 'Healthy');
 
   const overallOk = installed === 'True' && healthy === 'True';
-  const failingCond = conditions.find(
-    (c: any) => c.status !== 'True' && (c.type === 'Healthy' || c.type === 'Installed')
-  );
 
   return (
     <Box pb={6}>
       <BackLink />
 
-      <Box px={2} pt={2}>
-        {overallOk ? (
-          <Alert severity="success">Installed and healthy</Alert>
-        ) : installed !== 'True' ? (
-          <Alert severity="error">
-            <strong>Not installed</strong>
-            {failingCond?.reason && ` — ${failingCond.reason}`}
-            {failingCond?.message && `: ${failingCond.message}`}
-          </Alert>
-        ) : healthy !== 'True' ? (
-          <Alert severity="error">
-            <strong>Unhealthy</strong>
-            {failingCond?.reason && ` — ${failingCond.reason}`}
-            {failingCond?.message && `: ${failingCond.message}`}
-          </Alert>
-        ) : (
-          <Alert severity="warning">Status unknown</Alert>
-        )}
-      </Box>
-
-      <SectionBox title={name}>
+      <SectionBox title={name} headerProps={{ titleSideActions: [
+        <Chip size="small"
+          label={overallOk ? 'Healthy' : installed !== 'True' ? 'Not Installed' : 'Unhealthy'}
+          color={overallOk ? 'success' : 'error'}
+        />,
+      ] }}>
         <NameValueTable
           rows={[
             { name: 'Package', value: configuration.jsonData.spec?.package ?? '—' },

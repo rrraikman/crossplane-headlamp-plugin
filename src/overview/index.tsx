@@ -5,7 +5,8 @@ import {
   TileChart,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { Box, Chip, Tooltip, Typography, useTheme } from '@mui/material';
-import { Configuration, Composition, CompositeResourceDefinition, Provider } from '../resources';
+import { CrossplaneInfoButton } from '../components/CrossplaneInfoDialog';
+import { CompositeResourceDefinition, Composition, Configuration, Provider } from '../resources';
 import { age, conditionStatus, hasCondition, StatusChip } from '../utils';
 
 // --- Not Ready Panel ---
@@ -223,24 +224,17 @@ export function CrossplaneOverview() {
 
   return (
     <Box pb={6}>
+      <Box display="flex" justifyContent="flex-end" px={2} pt={1}>
+        <CrossplaneInfoButton />
+      </Box>
       <NotReadyPanel items={notReadyItems} />
       <Box display="grid" gridTemplateColumns="repeat(4, 1fr)" p={2} gap={2}
         sx={{ '& > *': { display: 'flex', justifyContent: 'center' } }}
       >
         <ResourceTile title="Providers" resources={providers} conditionType="Healthy" />
         <ResourceTile title="Configurations" resources={configurations} conditionType="Healthy" />
-        <ResourceTile
-          title="Composite Resource Definitions"
-          resources={xrds}
-          conditionType="Established"
-          routeName="crossplane-xrds"
-        />
-        <ResourceTile
-          title="Compositions"
-          resources={compositions}
-          conditionType={null}
-          routeName="crossplane-compositions"
-        />
+        <ResourceTile title="Composite Resource Definitions" resources={xrds} conditionType="Established" />
+        <ResourceTile title="Compositions" resources={compositions} conditionType={null} />
       </Box>
       <PackageTable
         title="Providers"
@@ -258,27 +252,14 @@ export function CrossplaneOverview() {
             {
               label: 'Name',
               getter: (r: any) => (
-                <HeadlampLink
-                  routeName="crossplane-composition-detail"
-                  params={{ name: r.metadata.name }}
-                >
+                <HeadlampLink routeName="crossplane-composition-detail" params={{ name: r.metadata.name }}>
                   {r.metadata.name}
                 </HeadlampLink>
               ),
             },
-            {
-              label: 'Composite Type',
-              getter: (r: any) =>
-                r.jsonData.spec?.compositeTypeRef?.kind ?? '—',
-            },
-            {
-              label: 'Mode',
-              getter: (r: any) => r.jsonData.spec?.mode ?? 'Resources',
-            },
-            {
-              label: 'Age',
-              getter: (r: any) => age(r.metadata.creationTimestamp),
-            },
+            { label: 'Composite Type', getter: (r: any) => r.jsonData.spec?.compositeTypeRef?.kind ?? '—' },
+            { label: 'Mode', getter: (r: any) => r.jsonData.spec?.mode ?? 'Resources' },
+            { label: 'Age', getter: (r: any) => age(r.metadata.creationTimestamp) },
           ]}
           data={compositions}
           emptyMessage="No compositions found"

@@ -6,10 +6,10 @@ import {
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Alert, Box, Chip, Tooltip, Typography } from '@mui/material';
+import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Composition, CompositeResourceDefinition } from '../resources';
+import { CompositeResourceDefinition,Composition } from '../resources';
 import { age, rawConditionStatus, StatusChip } from '../utils';
 
 function getReferenceableVersion(spec: any): string {
@@ -214,26 +214,10 @@ export function XRDDetail() {
 
   return (
     <Box pb={6}>
-      {/* 1. Status bar */}
-      <Box px={2} pt={2}>
-        {established ? (
-          <Alert severity="success">Established</Alert>
-        ) : (
-          <Alert severity="error">
-            <strong>Not established</strong>
-            {establishedCond && (
-              <>
-                {' — '}
-                <strong>{establishedCond.reason}</strong>
-                {establishedCond.message && `: ${establishedCond.message}`}
-              </>
-            )}
-          </Alert>
-        )}
-      </Box>
-
-      {/* 2. Metadata */}
-      <SectionBox title={name}>
+      {/* 1. Metadata */}
+      <SectionBox title={name} headerProps={{ titleSideActions: [
+        <Chip size="small" label={established ? 'Established' : 'Not Established'} color={established ? 'success' : 'error'} />,
+      ] }}>
         <NameValueTable
           rows={[
             { name: 'Group', value: spec.group },
