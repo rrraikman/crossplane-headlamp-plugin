@@ -34,6 +34,11 @@ export function getCondition(resource: any, type: string): any | undefined {
   return resource.jsonData?.status?.conditions?.find((c: any) => c.type === type);
 }
 
+export function getReferenceableVersion(spec: any): string {
+  const versions: any[] = spec?.versions ?? [];
+  return versions.find(v => v.referenceable)?.name ?? versions[0]?.name ?? 'v1';
+}
+
 // Green = True, Red = False, Yellow = Unknown / missing / transitioning.
 export function StatusChip({ status }: { status: string | undefined }) {
   if (status === 'True') return <Chip size="small" label="True" color="success" />;
