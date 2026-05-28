@@ -75,11 +75,11 @@ function RelationshipDiagram() {
   const tabText = theme.palette.mode === 'dark' ? '#aaa' : '#777';
 
   // vertical centres for each swim lane
-  const PY = 88;   // platform nodes
-  const IY = 278;  // instance nodes
-  const PB = PY + 22; // platform node bottom edge
-  const IT = IY - 22; // instance node top edge
-  const mid = (PB + IT) / 2;
+  const RY = 88;   // runtime instance nodes (top)
+  const PY = 278;  // platform nodes (bottom)
+  const RB = RY + 22; // runtime node bottom edge
+  const PT = PY - 22; // platform node top edge
+  const mid = (RB + PT) / 2;
 
   return (
     <svg viewBox="0 0 740 360" style={{ width: '100%' }}>
@@ -94,8 +94,22 @@ function RelationshipDiagram() {
       <rect x={8} y={192} width={724} height={120} rx={8} fill={laneBg} />
 
       {/* Lane labels */}
-      <text x={20} y={32} fontSize={9} letterSpacing={1.5} fill={laneText} fontFamily="sans-serif" fontWeight="700">PLATFORM SETUP</text>
-      <text x={20} y={210} fontSize={9} letterSpacing={1.5} fill={laneText} fontFamily="sans-serif" fontWeight="700">RUNTIME INSTANCES</text>
+      <text x={20} y={32} fontSize={9} letterSpacing={1.5} fill={laneText} fontFamily="sans-serif" fontWeight="700">RUNTIME INSTANCES</text>
+      <text x={20} y={210} fontSize={9} letterSpacing={1.5} fill={laneText} fontFamily="sans-serif" fontWeight="700">PLATFORM SETUP</text>
+
+      {/* ── Runtime horizontal arrows ──────────────────────── */}
+      {/* Claim → Composite Resource */}
+      <Arrow x1={162} y1={RY} x2={292} y2={RY} color={edge} label="creates" lx={227} ly={RY - 10} />
+      {/* Composite Resource → Managed Resource */}
+      <Arrow x1={428} y1={RY} x2={546} y2={RY} color={edge} label="creates" lx={487} ly={RY - 10} />
+
+      {/* ── Cross-lane arrows (platform → instances, upward) ── */}
+      {/* XRD → Claim: defines claim type */}
+      <Arrow x1={115} y1={PT} x2={100} y2={RB} color={edge} label="defines claim type" lx={62} ly={mid} />
+      {/* Composition → Composite Resource: implements XR */}
+      <Arrow x1={305} y1={PT} x2={352} y2={RB} color={edge} label="implements" lx={297} ly={mid} />
+      {/* Provider → Managed Resource: provides MR types */}
+      <Arrow x1={632} y1={PT} x2={618} y2={RB} color={edge} label="provides MR types" lx={675} ly={mid} />
 
       {/* ── Platform horizontal arrows ─────────────────────── */}
       {/* XRD → Composition */}
@@ -103,19 +117,10 @@ function RelationshipDiagram() {
       {/* Composition → Function */}
       <Arrow x1={360} y1={PY} x2={410} y2={PY} color={edge} label="uses" lx={385} ly={PY - 10} />
 
-      {/* ── Cross-lane arrows (platform → instances) ─────── */}
-      {/* XRD → Claim: defines claim type */}
-      <Arrow x1={115} y1={PB} x2={100} y2={IT} color={edge} label="defines claim type" lx={62} ly={mid} />
-      {/* Composition → Composite Resource: implements XR */}
-      <Arrow x1={305} y1={PB} x2={352} y2={IT} color={edge} label="implements" lx={297} ly={mid} />
-      {/* Provider → Managed Resource: provides MR types */}
-      <Arrow x1={632} y1={PB} x2={618} y2={IT} color={edge} label="provides MR types" lx={675} ly={mid} />
-
-      {/* ── Instance horizontal arrows ─────────────────────── */}
-      {/* Claim → Composite Resource */}
-      <Arrow x1={162} y1={IY} x2={292} y2={IY} color={edge} label="creates" lx={227} ly={IY - 10} />
-      {/* Composite Resource → Managed Resource */}
-      <Arrow x1={428} y1={IY} x2={546} y2={IY} color={edge} label="creates" lx={487} ly={IY - 10} />
+      {/* ── Runtime instance nodes ─────────────────────────── */}
+      <Node cx={100}  cy={RY} lines={['Claim']}                   color="#0891b2" />
+      <Node cx={360}  cy={RY} lines={['Composite', 'Resource']}   color="#065f46" w={130} />
+      <Node cx={612}  cy={RY} lines={['Managed', 'Resource']}     color="#374151" w={130} />
 
       {/* ── Platform nodes ─────────────────────────────────── */}
       <Node cx={120} cy={PY} lines={['XRD']}         color="#7c3aed" />
@@ -123,20 +128,15 @@ function RelationshipDiagram() {
       <Node cx={470} cy={PY} lines={['Function']}    color="#d97706" />
       <Node cx={642} cy={PY} lines={['Provider']}    color="#c2410c" />
 
-      {/* ── Instance nodes ─────────────────────────────────── */}
-      <Node cx={100}  cy={IY} lines={['Claim']}                   color="#0891b2" />
-      <Node cx={360}  cy={IY} lines={['Composite', 'Resource']}   color="#065f46" w={130} />
-      <Node cx={612}  cy={IY} lines={['Managed', 'Resource']}     color="#374151" w={130} />
-
       {/* ── Tab labels ─────────────────────────────────────── */}
-      <text x={120} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">XRDs</text>
-      <text x={300} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Compositions</text>
-      <text x={470} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Functions</text>
-      <text x={642} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Providers</text>
+      <text x={100} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Claims</text>
+      <text x={360} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Composite Resources</text>
+      <text x={612} y={132} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Managed Resources</text>
 
-      <text x={100} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Claims</text>
-      <text x={360} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Composite Resources</text>
-      <text x={612} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Managed Resources</text>
+      <text x={120} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">XRDs</text>
+      <text x={300} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Compositions</text>
+      <text x={470} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Functions</text>
+      <text x={642} y={322} textAnchor="middle" fontSize={10} fill={tabText} fontFamily="sans-serif" fontStyle="italic">Providers</text>
     </svg>
   );
 }
