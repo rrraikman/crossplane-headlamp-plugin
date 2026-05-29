@@ -20,30 +20,25 @@ A [Headlamp](https://headlamp.dev) plugin for inspecting and debugging [Crosspla
 
 ### Prerequisites
 
-- [Headlamp](https://headlamp.dev) desktop app or server (v0.20+)
+- [Headlamp](https://headlamp.dev) desktop app or server
 - A Kubernetes cluster with [Crossplane](https://crossplane.io) installed
 
 ### From a release (recommended)
 
 1. Download the latest `.tar.gz` from the [Releases](../../releases) page
-2. Open Headlamp → **Settings → Plugins → Install from file**
-3. Select the downloaded archive and restart Headlamp
-
-A **Crossplane** section will appear in the sidebar.
-
-### Plugin directory (Headlamp server)
-
-Extract the archive into your Headlamp plugins directory and restart the server:
+2. Extract it into your Headlamp plugins directory:
 
 | OS | Path |
 |---|---|
-| Linux | `~/.config/Headlamp/plugins/` |
 | macOS | `~/Library/Application Support/Headlamp/plugins/` |
+| Linux | `~/.config/Headlamp/plugins/` |
 | Windows | `%APPDATA%\Headlamp\plugins\` |
 
 ```bash
 tar -xzf crossplane-headlamp-plugin-*.tar.gz -C <plugins-dir>
 ```
+
+3. Restart Headlamp — a **Crossplane** section will appear in the sidebar.
 
 ### Building from source
 
@@ -55,7 +50,7 @@ npm run build
 npm run package   # produces crossplane-headlamp-plugin-*.tar.gz
 ```
 
-Then install the `.tar.gz` via Headlamp's plugin settings as above.
+Then extract the `.tar.gz` into your plugins directory as above.
 
 ### Development mode
 
