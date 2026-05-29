@@ -6,14 +6,14 @@ A [Headlamp](https://headlamp.dev) plugin for inspecting and debugging [Crosspla
 
 ## Features
 
-- **Overview page** — status tiles for Providers, Configurations, XRDs, and Compositions, plus a "Not Ready" panel that surfaces failing resources immediately
-- **Composite Resource Definitions** — list and detail views showing XR instances, claims, associated compositions, and any not-ready instances with their error messages
-- **Composite Resources (XRs)** — detail view with conditions, events, and managed resources
-- **Claims** — detail view linked to their backing XR and managed resources
-- **Managed Resources** — detail view with conditions, events, and full spec
-- **Providers & Configurations** — detail views with current revision info and conditions
+- **Overview page** — health stat cards for Claims, Compositions, XRDs, Configurations, and Providers, plus a "Not Ready" panel that surfaces failing resources immediately
+- **Claims** — list and detail views linked to their backing Composite Resource and managed resources
+- **Composite Resources (XRs)** — list and detail views with conditions, events, and managed resource tree
+- **Managed Resources** — browseable by type, detail view with conditions, events, and full spec
+- **XRDs** — list and detail views showing XR instances, claim types, and associated compositions
 - **Compositions** — list and detail views showing pipeline steps (v2) or resource templates (v1)
-- Live updates via Kubernetes watch streams (same as the FluxCD plugin)
+- **Packages** — Providers and Configurations with current revision info and conditions
+- Live updates via Kubernetes watch streams
 - Three-state status chips (green / yellow / red) throughout
 
 ## Installation
@@ -21,23 +21,38 @@ A [Headlamp](https://headlamp.dev) plugin for inspecting and debugging [Crosspla
 ### Prerequisites
 
 - [Headlamp](https://headlamp.dev) desktop app or server (v0.20+)
-- Access to a Kubernetes cluster with Crossplane installed
+- A Kubernetes cluster with [Crossplane](https://crossplane.io) installed
 
-### From a release package
+### From a release (recommended)
 
 1. Download the latest `.tar.gz` from the [Releases](../../releases) page
-2. Open Headlamp → Settings → Plugins
-3. Click **Install from file** and select the downloaded archive
-4. Restart Headlamp — a **Crossplane** section will appear in the sidebar
+2. Open Headlamp → **Settings → Plugins → Install from file**
+3. Select the downloaded archive and restart Headlamp
+
+A **Crossplane** section will appear in the sidebar.
+
+### Plugin directory (Headlamp server)
+
+Extract the archive into your Headlamp plugins directory and restart the server:
+
+| OS | Path |
+|---|---|
+| Linux | `~/.config/Headlamp/plugins/` |
+| macOS | `~/Library/Application Support/Headlamp/plugins/` |
+| Windows | `%APPDATA%\Headlamp\plugins\` |
+
+```bash
+tar -xzf crossplane-headlamp-plugin-*.tar.gz -C <plugins-dir>
+```
 
 ### Building from source
 
 ```bash
-git clone https://github.com/aikman-ryan/crossplane-headlamp-plugin
+git clone https://github.com/rrraikman/crossplane-headlamp-plugin
 cd crossplane-headlamp-plugin
 npm install
 npm run build
-npm run package   # produces crossplane-headlamp-plugin.tar.gz
+npm run package   # produces crossplane-headlamp-plugin-*.tar.gz
 ```
 
 Then install the `.tar.gz` via Headlamp's plugin settings as above.
@@ -46,26 +61,26 @@ Then install the `.tar.gz` via Headlamp's plugin settings as above.
 
 ```bash
 npm install
-npm start
+npm start   # watches for changes and rebuilds automatically
 ```
 
-Point Headlamp at the dev server output or copy the built files to your Headlamp plugins directory. Changes are watched and rebuilt automatically.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development workflow.
 
 ## Project structure
 
 ```
 src/
-  overview/          # Overview page with tiles and not-ready panel
-  xrds/              # XRD list and detail
-  composite/         # Composite Resource (XR) detail
-  claims/            # Claim detail
-  managed/           # Managed Resource detail
-  providers/         # Provider detail
-  configurations/    # Configuration detail
-  compositions/      # Composition list and detail
-  components/        # Shared components (ConditionsTable, ManagedResources, EventsTable)
-  resources.ts       # KubeObject subclasses for Crossplane CRDs
-  utils.tsx          # Shared helpers (age, StatusChip, conditionStatus)
+  overview.tsx         # Overview page with stat cards and not-ready panel
+  claims/              # Claim list and detail
+  composites/          # Composite Resource (XR) list and detail
+  managed/             # Managed Resource browser, type list, and detail
+  xrds/                # XRD list and detail
+  compositions/        # Composition list and detail
+  functions/           # Function list and detail
+  packages/            # Provider and Configuration list and detail
+  components/          # Shared components (ConditionsTable, EventsTable, InfoDialog)
+  resources.ts         # KubeObject subclasses for Crossplane CRDs
+  utils.tsx            # Shared helpers (age, StatusChip, conditionStatus)
 ```
 
 ## License
