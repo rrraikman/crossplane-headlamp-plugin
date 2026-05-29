@@ -11,7 +11,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
-import { ManagedResources } from '../components/ManagedResources';
+import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus } from '../utils';
 
 export function CompositeDetail() {

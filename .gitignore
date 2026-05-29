@@ -31,5 +31,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Cache
+.eslintcache
+*.tsbuildinfo
+
 # Claude Code local settings
 .claude/settings.local.json

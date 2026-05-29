@@ -6,9 +6,9 @@ import {
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { Box, Chip, Paper, Tooltip, Typography, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { CrossplaneInfoButton } from '../components/CrossplaneInfoDialog';
-import { CompositeResourceDefinition, Composition, Configuration, Provider } from '../resources';
-import { getReferenceableVersion, hasCondition } from '../utils';
+import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
+import { CompositeResourceDefinition, Composition, Configuration, Provider } from './resources';
+import { getReferenceableVersion, hasCondition } from './utils';
 
 function countReady(resources: any[] | null, condType: string): number | null {
   return resources === null ? null : resources.filter(r => hasCondition(r, condType)).length;

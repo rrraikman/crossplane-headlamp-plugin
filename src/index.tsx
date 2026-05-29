@@ -1,11 +1,11 @@
 import { registerRoute, registerSidebarEntry } from '@kinvolk/headlamp-plugin/lib';
 import { ClaimDetail } from './claims/Detail';
 import { ClaimList } from './claims/List';
-import { CompositeDetail } from './composite/Detail';
-import { CompositeResourceList } from './composite/List';
+import { CompositeDetail } from './composites/Detail';
+import { CompositeResourceList } from './composites/List';
 import { CompositionDetail } from './compositions/Detail';
 import { CompositionList } from './compositions/List';
-import { ConfigurationDetail } from './configurations/Detail';
+import { ConfigurationDetail } from './packages/ConfigurationDetail';
 import { FunctionDetail } from './functions/Detail';
 import { FunctionList } from './functions/List';
 import { ManagedResourceDetail } from './managed/Detail';
@@ -13,7 +13,7 @@ import { ManagedResourceBrowser } from './managed/List';
 import { ManagedResourceTypeList } from './managed/TypeList';
 import { CrossplaneOverview } from './overview';
 import { PackageList } from './packages/List';
-import { ProviderDetail } from './providers/Detail';
+import { ProviderDetail } from './packages/ProviderDetail';
 import { XRDDetail } from './xrds/Detail';
 import { XRDList } from './xrds/List';
 
