@@ -134,6 +134,29 @@ Check out production-ready plugins in `node_modules/@kinvolk/headlamp-plugin/off
 6. **Test:** Run `npm run test` to run tests
 7. **Build:** Run `npm run build` to create production build
 
+## Commit Messages — Conventional Commits
+
+This repo uses [Conventional Commits](https://www.conventionalcommits.org). Every commit must follow:
+
+```
+<type>(<optional scope>): <description>
+```
+
+Common types and their effect on versioning:
+
+| Type | Meaning | Version bump |
+|---|---|---|
+| `feat` | New user-facing feature | minor |
+| `fix` | Bug fix | patch |
+| `refactor` | Code restructure, no behaviour change | none |
+| `chore` | Deps, tooling, config | none |
+| `docs` | Documentation only | none |
+| `ci` | CI/CD changes | none |
+
+Append `!` (e.g. `feat!:`) or add `BREAKING CHANGE:` in the footer for a **major** bump.
+
+Releases are automated via Release Please: it opens a PR on every push to `main`, bumps `package.json`, and maintains `CHANGELOG.md`. Merging the release PR triggers the build and publish workflow.
+
 ## Best Practices
 
 - Follow the patterns shown in the example plugins
@@ -180,7 +203,7 @@ const resource = discovery.resources.find((r: any) => r.kind === kind && !r.name
 const plural = resource?.name ?? kind.toLowerCase() + 's';
 ```
 
-Use a module-level `Map` to cache these lookups and avoid redundant API calls (see `src/components/ManagedResources.tsx`).
+Use a module-level `Map` to cache these lookups and avoid redundant API calls (see `src/managed/ManagedResources.tsx`).
 
 ### Crossplane API Groups
 

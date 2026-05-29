@@ -21,35 +21,51 @@ Load the built plugin in [Headlamp](https://headlamp.dev) by pointing it at the 
 | `npm run build` | Production build |
 | `npm run package` | Create `.tar.gz` for distribution |
 
-## Releasing
+## Commit messages
 
-Releases are published via the [Release workflow](.github/workflows/release.yml) and follow [semantic versioning](https://semver.org).
+This project uses [Conventional Commits](https://www.conventionalcommits.org). Every commit to `main` must follow the format:
 
-### Triggering a release
-
-Go to **Actions → Release → Run workflow**, choose a bump type, and click **Run workflow**.
-
-The workflow will:
-1. Lint and type-check the codebase
-2. Bump `package.json` and create a `vX.Y.Z` tag
-3. Build and package the plugin
-4. Publish a GitHub release with the `.tar.gz` artifact and auto-generated release notes
-
-### Choosing the bump type
-
-| Type | When to use |
-|---|---|
-| `patch` | Bug fixes, documentation, dependency updates |
-| `minor` | New features that are backwards-compatible |
-| `major` | Breaking changes or significant redesigns |
-
-### Manual tag push
-
-If you need to release a specific version without going through the dispatch UI:
-
-```bash
-git tag v1.2.3
-git push origin v1.2.3
+```
+<type>(<optional scope>): <description>
 ```
 
-Note: this skips the `package.json` version bump commit, so you should bump it manually beforehand if you want `main` to reflect the new version.
+### Types
+
+| Type | Use for | Version bump |
+|---|---|---|
+| `feat` | New user-facing feature | minor |
+| `fix` | Bug fix | patch |
+| `refactor` | Code restructure with no behaviour change | none |
+| `chore` | Deps, tooling, config | none |
+| `docs` | Documentation only | none |
+| `ci` | CI/CD workflow changes | none |
+| `test` | Adding or updating tests | none |
+
+Append `!` after the type (e.g. `feat!:`) or add `BREAKING CHANGE:` in the commit footer to trigger a **major** version bump.
+
+### Examples
+
+```
+feat(overview): add claims health stat card
+fix(composites): handle missing status conditions gracefully
+refactor: restructure src/ layout into feature folders
+chore: update headlamp-plugin to 0.15.0
+docs: add release process to CONTRIBUTING
+ci: switch to Release Please for automated versioning
+```
+
+## Releasing
+
+Releases are fully automated via [Release Please](https://github.com/googleapis/release-please) and the [release-please workflow](.github/workflows/release-please.yml).
+
+### How it works
+
+1. Merge conventional commits to `main`
+2. Release Please opens (or updates) a **release PR** that bumps `package.json`, updates `CHANGELOG.md`, and shows what will be in the release
+3. When you're ready to ship, **merge the release PR**
+4. The workflow builds and packages the plugin, then publishes a GitHub release with the `.tar.gz` artifact attached
+
+The version bump is determined automatically from the commit types:
+- Any `feat:` commit since the last release → minor bump
+- Only `fix:`/`chore:`/etc. → patch bump
+- Any `feat!:` or `BREAKING CHANGE:` → major bump
