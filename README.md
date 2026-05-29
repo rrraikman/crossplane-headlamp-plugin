@@ -54,7 +54,7 @@ Then install the resulting `.tar.gz` using the manual steps above.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, commit conventions, and release process.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the local dev setup and [CONTRIBUTING.md](CONTRIBUTING.md) for commit conventions and the release process.
 
 ## License
 
