@@ -23,7 +23,7 @@ registerSidebarEntry({
   parent: null,
   name: 'crossplane',
   label: 'Crossplane',
-  icon: 'mdi:puzzle-outline',
+  icon: 'mdi:crosshairs',
   url: '/crossplane/overview',
 });
 
