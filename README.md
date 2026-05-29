@@ -25,6 +25,16 @@ A [Headlamp](https://headlamp.dev) plugin for inspecting and debugging [Crosspla
 
 ### From a release (recommended)
 
+**macOS / Linux — one-liner:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rrraikman/crossplane-headlamp-plugin/main/install.sh | bash
+```
+
+Then restart Headlamp — a **Crossplane** section will appear in the sidebar.
+
+**Manual install:**
+
 1. Download the latest `.tar.gz` from the [Releases](../../releases) page
 2. Extract it into your Headlamp plugins directory:
 
@@ -38,7 +48,7 @@ A [Headlamp](https://headlamp.dev) plugin for inspecting and debugging [Crosspla
 tar -xzf crossplane-headlamp-plugin-*.tar.gz -C <plugins-dir>
 ```
 
-3. Restart Headlamp — a **Crossplane** section will appear in the sidebar.
+3. Restart Headlamp.
 
 ### Building from source
 
