@@ -2,6 +2,16 @@
 
 This file provides guidance for AI coding agents working on this Headlamp plugin.
 
+## Git Workflow
+
+**Never push directly to `main`.** All changes must go through a pull request:
+
+1. Create a new branch from `main` with a descriptive name (e.g. `feat/my-feature`, `fix/bug-name`, `chore/update-deps`)
+2. Make commits on the branch
+3. Open a PR targeting `main`
+
+Branch protection and required CI checks are enforced on `main`.
+
 ## Available Scripts
 
 The following npm scripts are available for development and testing:
@@ -133,6 +143,29 @@ Check out production-ready plugins in `node_modules/@kinvolk/headlamp-plugin/off
 5. **Format:** Run `npm run format` to format code
 6. **Test:** Run `npm run test` to run tests
 7. **Build:** Run `npm run build` to create production build
+
+## Unit Testing
+
+Tests use **Vitest** in a jsdom environment, wired up via the headlamp-plugin config. Run them with `npm test`.
+
+### Where to put tests
+
+Place test files **inline next to the source file** they cover (e.g. `utils.test.ts` alongside `utils.tsx`). This is the convention used by the official Headlamp plugins.
+
+### What to test
+
+Only pure logic functions are practical to unit test. React components and files that import `@kinvolk/headlamp-plugin/lib/k8s/cluster` (i.e. anything using `KubeObject` subclasses) cannot be imported in tests because that path has no resolvable JS file at runtime — Vite's transform stage rejects it before any `vi.mock` can intercept it.
+
+**Practical rule:** if a file's only imports are from `./utils`, `@mui/material`, or other packages that are physically present in `node_modules`, it can be tested directly. If it imports from `./resources` or any other file that transitively pulls in `@kinvolk/headlamp-plugin/lib/k8s/cluster`, extract the pure logic into a separate file with no such dependency before writing tests.
+
+**Example:** `overview.tsx` had untestable dependencies, so its pure logic functions (`countReady`, `resolveDetailRoute`, `collectNotReady`) were extracted into `overview.utils.ts` which has no `KubeObject` dependency and can be tested directly.
+
+### Test file conventions
+
+- Use `describe` blocks per function, `test` for each case
+- Name tests in plain English describing the expected behaviour
+- Keep fixture helpers (`makeResource`, etc.) at the top of the file, local to the test file
+- `globals: true` is set — `describe`, `test`, `expect`, `vi` are available without imports, though importing them explicitly is fine too
 
 ## Commit Messages — Conventional Commits
 
