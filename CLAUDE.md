@@ -2,6 +2,16 @@
 
 This file provides guidance for AI coding agents working on this Headlamp plugin.
 
+## Git Workflow
+
+**Never push directly to `main`.** All changes must go through a pull request:
+
+1. Create a new branch from `main` with a descriptive name (e.g. `feat/my-feature`, `fix/bug-name`, `chore/update-deps`)
+2. Make commits on the branch
+3. Open a PR targeting `main`
+
+Branch protection and required CI checks are enforced on `main`.
+
 ## Available Scripts
 
 The following npm scripts are available for development and testing:
