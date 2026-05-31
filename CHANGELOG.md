@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.1.1...crossplane-headlamp-plugin-v1.2.0) (2026-05-31)
+
+
+### Features
+
+* add coverage script and CI coverage reporting ([#32](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/32)) ([29b00e3](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/29b00e3db0143f38bdd4651b45d032c40cc16521))
+
+
+### Bug Fixes
+
+* use squash merge for release-please auto-merge ([#34](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/34)) ([ddcc8fc](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/ddcc8fcb16482d6306b70a3c1be4f95471c17a15))
+
 ## [1.1.1](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.1.0...crossplane-headlamp-plugin-v1.1.1) (2026-05-29)
 
 
