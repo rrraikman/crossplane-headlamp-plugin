@@ -5,15 +5,14 @@ import {
   NameValueTable,
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
 import { Alert, Box, Chip } from '@mui/material';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
-import { age, rawConditionStatus } from '../utils';
-import { compositeStatusLabel } from './Detail.utils';
+import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
 export function CompositeDetail() {
   const { group, version, plural, name } = useParams<{
@@ -23,17 +22,7 @@ export function CompositeDetail() {
     name: string;
   }>();
 
-  const XRClass = useMemo(() => {
-    class DynamicXR extends KubeObject {
-      static kind = plural;
-      static apiName = plural;
-      static apiVersion = `${group}/${version}`;
-      static isNamespaced = false;
-    }
-    return DynamicXR;
-  }, [group, version, plural]);
-
-  const [xrs, error] = XRClass.useList();
+  const [xrs, error] = useDynamicKubeList(group, version, plural, false);
   const xr = useMemo(
     () => xrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
     [xrs, name]
@@ -66,7 +55,7 @@ export function CompositeDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={compositeStatusLabel(ready, synced)}
+          label={readySyncedStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
       ] }}>

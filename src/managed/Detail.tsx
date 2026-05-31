@@ -5,13 +5,13 @@ import {
   NameValueTable,
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
 import { Alert, Box, Chip } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
-import { age, rawConditionStatus } from '../utils';
+import { useDynamicKubeList } from '../hooks';
+import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
 export function ManagedResourceDetail() {
   const { group, version, plural, name } = useParams<{
@@ -21,17 +21,7 @@ export function ManagedResourceDetail() {
     name: string;
   }>();
 
-  const MRClass = useMemo(() => {
-    class DynamicMR extends KubeObject {
-      static kind = plural;
-      static apiName = plural;
-      static apiVersion = `${group}/${version}`;
-      static isNamespaced = false;
-    }
-    return DynamicMR;
-  }, [group, version, plural]);
-
-  const [mrs, error] = MRClass.useList();
+  const [mrs, error] = useDynamicKubeList(group, version, plural, false);
   const mr = useMemo(
     () => mrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
     [mrs, name]
@@ -80,7 +70,7 @@ export function ManagedResourceDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Ready' : synced !== 'True' ? 'Sync Failed' : ready !== 'True' ? 'Not Ready' : 'Unknown'}
+          label={readySyncedStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
       ] }}>

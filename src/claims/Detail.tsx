@@ -5,15 +5,15 @@ import {
   NameValueTable,
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
 import { Alert, Box, Chip } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
-import { age, rawConditionStatus } from '../utils';
-import { claimStatusLabel, fetchXRResourceRefs } from './Detail.utils';
+import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
+import { fetchXRResourceRefs } from './Detail.utils';
 
 export function ClaimDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -24,17 +24,7 @@ export function ClaimDetail() {
     name: string;
   }>();
 
-  const ClaimClass = useMemo(() => {
-    class DynamicClaim extends KubeObject {
-      static kind = plural;
-      static apiName = plural;
-      static apiVersion = `${group}/${version}`;
-      static isNamespaced = true;
-    }
-    return DynamicClaim;
-  }, [group, version, plural]);
-
-  const [claims, claimError] = ClaimClass.useList({ namespace });
+  const [claims, claimError] = useDynamicKubeList(group, version, plural, true, { namespace });
   const claim = useMemo(
     () => claims?.find(r => r.metadata.name === name)?.jsonData ?? null,
     [claims, name]
@@ -76,7 +66,7 @@ export function ClaimDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={claimStatusLabel(ready, synced)}
+          label={readySyncedStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
       ] }}>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { claimStatusLabel, fetchXRResourceRefs } from './Detail.utils';
+import { fetchXRResourceRefs } from './Detail.utils';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn(),
@@ -7,28 +7,6 @@ vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 const mockRequest = vi.mocked(request);
-
-// ── claimStatusLabel ──────────────────────────────────────────────────────────
-
-describe('claimStatusLabel', () => {
-  test('returns Ready when both ready and synced are True', () => {
-    expect(claimStatusLabel('True', 'True')).toBe('Ready');
-  });
-
-  test('returns Sync Failed when synced is not True', () => {
-    expect(claimStatusLabel('True', 'False')).toBe('Sync Failed');
-    expect(claimStatusLabel('True', 'Unknown')).toBe('Sync Failed');
-  });
-
-  test('returns Not Ready when synced is True but ready is not', () => {
-    expect(claimStatusLabel('False', 'True')).toBe('Not Ready');
-    expect(claimStatusLabel('Unknown', 'True')).toBe('Not Ready');
-  });
-
-  test('Sync Failed takes priority over Not Ready when both are false', () => {
-    expect(claimStatusLabel('False', 'False')).toBe('Sync Failed');
-  });
-});
 
 // ── fetchXRResourceRefs ───────────────────────────────────────────────────────
 

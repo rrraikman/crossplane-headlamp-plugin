@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { age, conditionStatus, getCondition, getReferenceableVersion, hasCondition, rawConditionStatus } from './utils';
+import { age, conditionStatus, getCondition, getReferenceableVersion, hasCondition, rawConditionStatus, readySyncedStatusLabel } from './utils';
 
 function makeResource(conditions: Array<{ type: string; status: string }>) {
   return { jsonData: { status: { conditions } } };
@@ -111,6 +111,28 @@ describe('getCondition', () => {
 
   test('returns undefined when jsonData has no status', () => {
     expect(getCondition({ jsonData: {} }, 'Ready')).toBeUndefined();
+  });
+});
+
+// ── readySyncedStatusLabel ────────────────────────────────────────────────────
+
+describe('readySyncedStatusLabel', () => {
+  test('returns Ready when both ready and synced are True', () => {
+    expect(readySyncedStatusLabel('True', 'True')).toBe('Ready');
+  });
+
+  test('returns Sync Failed when synced is not True', () => {
+    expect(readySyncedStatusLabel('True', 'False')).toBe('Sync Failed');
+    expect(readySyncedStatusLabel('True', 'Unknown')).toBe('Sync Failed');
+  });
+
+  test('returns Not Ready when synced is True but ready is not', () => {
+    expect(readySyncedStatusLabel('False', 'True')).toBe('Not Ready');
+    expect(readySyncedStatusLabel('Unknown', 'True')).toBe('Not Ready');
+  });
+
+  test('Sync Failed takes priority over Not Ready when both are false', () => {
+    expect(readySyncedStatusLabel('False', 'False')).toBe('Sync Failed');
   });
 });
 
