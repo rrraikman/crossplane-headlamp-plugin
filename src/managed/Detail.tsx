@@ -12,6 +12,7 @@ import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { age, rawConditionStatus } from '../utils';
+import { managedResourceStatusLabel } from './Detail.utils';
 
 export function ManagedResourceDetail() {
   const { group, version, plural, name } = useParams<{
@@ -80,7 +81,7 @@ export function ManagedResourceDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Ready' : synced !== 'True' ? 'Sync Failed' : ready !== 'True' ? 'Not Ready' : 'Unknown'}
+          label={managedResourceStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
       ] }}>

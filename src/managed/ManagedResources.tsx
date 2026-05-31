@@ -3,36 +3,12 @@ import { Link as HeadlampLink, SectionBox, SimpleTable } from '@kinvolk/headlamp
 import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { age, rawConditionStatus, StatusChip } from '../utils';
+import { debugMessage, resolvePlural } from './ManagedResources.utils';
 
 interface ResourceRef {
   apiVersion: string;
   kind: string;
   name: string;
-}
-
-// Cache plural lookups so we don't repeat the same discovery call.
-const pluralCache = new Map<string, string>();
-
-async function resolvePlural(apiVersion: string, kind: string): Promise<string> {
-  const cacheKey = `${apiVersion}/${kind}`;
-  if (pluralCache.has(cacheKey)) return pluralCache.get(cacheKey)!;
-
-  const slashIdx = apiVersion.lastIndexOf('/');
-  const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
-  const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion;
-  const discoveryPath = group ? `/apis/${group}/${version}` : `/api/${version}`;
-
-  try {
-    const data = await request(discoveryPath);
-    const resource = (data.resources ?? []).find(
-      (r: any) => r.kind === kind && !r.name.includes('/')
-    );
-    const plural = resource?.name ?? kind.toLowerCase() + 's';
-    pluralCache.set(cacheKey, plural);
-    return plural;
-  } catch {
-    return kind.toLowerCase() + 's';
-  }
 }
 
 async function fetchMRList(apiVersion: string, kind: string, names: Set<string>): Promise<any[]> {
@@ -43,34 +19,21 @@ async function fetchMRList(apiVersion: string, kind: string, names: Set<string>)
   const path = group
     ? `/apis/${group}/${version}/${plural}`
     : `/api/${version}/${plural}`;
-  console.log('[ManagedResources] fetching list', path, 'names:', [...names]);
   try {
     const data = await request(path);
-    console.log('[ManagedResources] list response items:', data.items?.length, data.items?.map((r: any) => r.metadata.name));
     const found = (data.items ?? [])
       .filter((r: any) => names.has(r.metadata.name))
       .map((r: any) => ({ ...r, __plural: plural }));
-    console.log('[ManagedResources] matched:', found.length);
     return found;
-  } catch (err) {
-    console.error('[ManagedResources] list failed', path, err);
+  } catch {
     return [];
   }
-}
-
-function debugMessage(conditions: any[]): string | null {
-  const synced = conditions?.find((c: any) => c.type === 'Synced');
-  if (synced && synced.status !== 'True' && synced.message) return synced.message;
-  const ready = conditions?.find((c: any) => c.type === 'Ready');
-  if (ready && ready.status !== 'True' && ready.message) return ready.message;
-  return null;
 }
 
 export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[] | undefined }) {
   const [mrs, setMrs] = useState<any[] | null>(null);
 
   useEffect(() => {
-    console.log('[ManagedResources] resourceRefs:', resourceRefs);
     if (!resourceRefs || resourceRefs.length === 0) {
       setMrs([]);
       return;
