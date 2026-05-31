@@ -8,26 +8,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { CompositeResourceDefinition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
-
-interface XRRow {
-  name: string;
-  kind: string;
-  group: string;
-  version: string;
-  plural: string;
-  ready: string;
-  synced: string;
-  creationTimestamp: string;
-}
-
-function sortByReady(rows: XRRow[]): XRRow[] {
-  return [...rows].sort((a, b) => {
-    const aOk = a.ready === 'True' && a.synced === 'True';
-    const bOk = b.ready === 'True' && b.synced === 'True';
-    if (aOk !== bOk) return Number(aOk) - Number(bOk);
-    return a.name.localeCompare(b.name);
-  });
-}
+import { sortByReady,XRRow } from './List.utils';
 
 export function CompositeResourceList() {
   const [xrds] = CompositeResourceDefinition.useList();
