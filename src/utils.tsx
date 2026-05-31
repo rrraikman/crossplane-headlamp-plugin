@@ -34,6 +34,13 @@ export function getCondition(resource: any, type: string): any | undefined {
   return resource.jsonData?.status?.conditions?.find((c: any) => c.type === type);
 }
 
+export function readySyncedStatusLabel(ready: string, synced: string): string {
+  if (ready === 'True' && synced === 'True') return 'Ready';
+  if (synced !== 'True') return 'Sync Failed';
+  if (ready !== 'True') return 'Not Ready';
+  return 'Unknown';
+}
+
 export function getReferenceableVersion(spec: any): string {
   const versions: any[] = spec?.versions ?? [];
   return versions.find(v => v.referenceable)?.name ?? versions[0]?.name ?? 'v1';

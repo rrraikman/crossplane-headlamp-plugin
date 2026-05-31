@@ -1,12 +1,5 @@
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 
-export function claimStatusLabel(ready: string, synced: string): string {
-  if (ready === 'True' && synced === 'True') return 'Ready';
-  if (synced !== 'True') return 'Sync Failed';
-  if (ready !== 'True') return 'Not Ready';
-  return 'Unknown';
-}
-
 export async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | null> {
   if (!resourceRef?.apiVersion || !resourceRef?.kind || !resourceRef?.name) return null;
 

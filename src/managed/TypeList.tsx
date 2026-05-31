@@ -6,10 +6,9 @@ import {
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
 import { Box } from '@mui/material';
-import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { useDynamicKubeList } from '../hooks';
 import { age, rawConditionStatus, StatusChip } from '../utils';
 
 function sortByReady(items: any[]): any[] {
@@ -28,17 +27,7 @@ export function ManagedResourceTypeList() {
     kind: string;
   }>();
 
-  const MRClass = useMemo(() => {
-    class DynamicMR extends KubeObject {
-      static kind = kind;
-      static apiName = plural;
-      static apiVersion = `${group}/${version}`;
-      static isNamespaced = false;
-    }
-    return DynamicMR;
-  }, [group, version, plural, kind]);
-
-  const [mrs, error] = MRClass.useList();
+  const [mrs, error] = useDynamicKubeList(group, version, plural, false, { kind });
 
   if (!mrs && !error) return <Loader title={`Loading ${kind} resources...`} />;
 
