@@ -15,7 +15,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: 'node_modules/@kinvolk/headlamp-plugin/config/setupTests.js',
+    setupFiles: 'src/setupTests.ts',
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'lcov'],
