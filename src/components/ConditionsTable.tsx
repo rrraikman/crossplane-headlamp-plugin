@@ -2,7 +2,7 @@ import { SimpleTable } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { Chip, Tooltip, Typography } from '@mui/material';
 import { age, StatusChip } from '../utils';
 
-function reasonColor(status: string): 'success' | 'error' | 'warning' {
+export function reasonColor(status: string): 'success' | 'error' | 'warning' {
   if (status === 'True') return 'success';
   if (status === 'False') return 'error';
   return 'warning';
