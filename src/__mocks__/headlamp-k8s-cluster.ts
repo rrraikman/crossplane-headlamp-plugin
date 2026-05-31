@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 export class KubeObject {
   jsonData: any;
   metadata: any;
@@ -7,11 +9,6 @@ export class KubeObject {
     this.metadata = data?.metadata ?? {};
   }
 
-  static useGet(/* name */): [any, any] {
-    return [null, null];
-  }
-
-  static useList(): [any[], any] {
-    return [[], null];
-  }
+  static useGet = vi.fn<() => [any, any]>().mockReturnValue([null, null]);
+  static useList = vi.fn<() => [any[], any]>().mockReturnValue([null, null]);
 }
