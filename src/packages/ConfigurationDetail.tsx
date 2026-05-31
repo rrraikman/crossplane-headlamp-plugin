@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { Configuration, ConfigurationRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
+import { packageStatusLabel } from './Detail.utils';
 
 export function ConfigurationDetail() {
   const { name } = useParams<{ name: string }>();
@@ -31,7 +32,7 @@ export function ConfigurationDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Healthy' : installed !== 'True' ? 'Not Installed' : 'Unhealthy'}
+          label={packageStatusLabel(installed, healthy)}
           color={overallOk ? 'success' : 'error'}
         />,
       ] }}>

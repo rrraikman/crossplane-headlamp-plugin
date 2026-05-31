@@ -13,6 +13,7 @@ import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus } from '../utils';
+import { compositeStatusLabel } from './Detail.utils';
 
 export function CompositeDetail() {
   const { group, version, plural, name } = useParams<{
@@ -65,7 +66,7 @@ export function CompositeDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Ready' : synced !== 'True' ? 'Sync Failed' : ready !== 'True' ? 'Not Ready' : 'Unknown'}
+          label={compositeStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
       ] }}>
