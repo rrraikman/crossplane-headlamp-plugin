@@ -12,6 +12,7 @@ import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { Composition, CrossplaneFunction, CrossplaneFunctionRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
+import { packageStatusLabel } from './Detail.utils';
 
 export function FunctionDetail() {
   const { name } = useParams<{ name: string }>();
@@ -41,7 +42,7 @@ export function FunctionDetail() {
       <BackLink />
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Healthy' : installed !== 'True' ? 'Not Installed' : 'Unhealthy'}
+          label={packageStatusLabel(installed, healthy)}
           color={overallOk ? 'success' : 'error'}
         />,
       ] }}>
