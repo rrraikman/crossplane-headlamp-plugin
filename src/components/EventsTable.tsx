@@ -3,6 +3,7 @@ import { SectionBox, SimpleTable } from '@kinvolk/headlamp-plugin/lib/CommonComp
 import { Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { age } from '../utils';
+import { sortEvents } from './EventsTable.utils';
 
 export function EventsTable({
   resourceName,
@@ -29,13 +30,7 @@ export function EventsTable({
       .catch(() => setEvents([]));
   }, [resourceName, resourceKind, namespace]);
 
-  const sorted = events
-    ? [...events].sort((a, b) => {
-        const aTime = a.lastTimestamp ?? a.eventTime ?? '';
-        const bTime = b.lastTimestamp ?? b.eventTime ?? '';
-        return bTime.localeCompare(aTime);
-      })
-    : null;
+  const sorted = events ? sortEvents(events) : null;
 
   if (events?.length === 0) return null;
 
