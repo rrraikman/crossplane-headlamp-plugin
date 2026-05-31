@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { Provider, ProviderRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
+import { packageStatusLabel } from './Detail.utils';
 
 export function ProviderDetail() {
   const { name } = useParams<{ name: string }>();
@@ -30,7 +31,7 @@ export function ProviderDetail() {
       <BackLink />
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Healthy' : installed !== 'True' ? 'Not Installed' : 'Unhealthy'}
+          label={packageStatusLabel(installed, healthy)}
           color={overallOk ? 'success' : 'error'}
         />,
       ] }}>
