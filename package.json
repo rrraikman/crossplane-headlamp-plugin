@@ -13,6 +13,7 @@
     "storybook": "headlamp-plugin storybook",
     "storybook-build": "headlamp-plugin storybook-build",
     "test": "headlamp-plugin test",
+    "coverage": "vitest run --coverage --coverage.provider=istanbul -c node_modules/@kinvolk/headlamp-plugin/config/vite.config.mjs",
     "i18n": "headlamp-plugin i18n",
     "prepare": "husky"
   },
