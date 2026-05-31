@@ -1,4 +1,3 @@
-import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import {
   BackLink,
   Link as HeadlampLink,
@@ -14,28 +13,7 @@ import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus } from '../utils';
-
-async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | null> {
-  if (!resourceRef?.apiVersion || !resourceRef?.kind || !resourceRef?.name) return null;
-
-  const slashIdx = resourceRef.apiVersion.lastIndexOf('/');
-  const group = resourceRef.apiVersion.slice(0, slashIdx);
-  const version = resourceRef.apiVersion.slice(slashIdx + 1);
-
-  try {
-    const discovery = await request(`/apis/${group}/${version}`);
-    const resource = (discovery.resources ?? []).find(
-      (r: any) => r.kind === resourceRef.kind && !r.name.includes('/')
-    );
-    const plural = resource?.name ?? resourceRef.kind.toLowerCase() + 's';
-    const list = await request(`/apis/${group}/${version}/${plural}`);
-    const xr = (list.items ?? []).find((r: any) => r.metadata.name === resourceRef.name);
-    if (!xr) return null;
-    return xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
-  } catch {
-    return null;
-  }
-}
+import { claimStatusLabel, fetchXRResourceRefs } from './Detail.utils';
 
 export function ClaimDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -98,7 +76,7 @@ export function ClaimDetail() {
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"
-          label={overallOk ? 'Ready' : synced !== 'True' ? 'Sync Failed' : ready !== 'True' ? 'Not Ready' : 'Unknown'}
+          label={claimStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
       ] }}>
