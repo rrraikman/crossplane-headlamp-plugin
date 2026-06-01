@@ -13,7 +13,7 @@ import { EventsTable } from '../components/EventsTable';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
-import { fetchXRResourceRefs } from './Detail.utils';
+import { fetchXRResourceRefs, resolveXRPlural } from './Detail.utils';
 
 export function ClaimDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -31,11 +31,13 @@ export function ClaimDetail() {
   );
 
   const [xrResourceRefs, setXrResourceRefs] = useState<any[] | null>(null);
+  const [xrPlural, setXrPlural] = useState<string | null>(null);
 
   useEffect(() => {
     if (!claim) return;
     const resourceRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
     fetchXRResourceRefs(resourceRef).then(refs => setXrResourceRefs(refs ?? []));
+    resolveXRPlural(resourceRef).then(setXrPlural);
   }, [claim]);
 
   if (!claims && !claimError) return <Loader title="Loading..." />;
@@ -99,7 +101,7 @@ export function ClaimDetail() {
                   params={{
                     group: xrRef.apiVersion.split('/')[0],
                     version: xrRef.apiVersion.split('/')[1],
-                    plural: xrRef.kind.toLowerCase() + 's',
+                    plural: xrPlural ?? xrRef.kind.toLowerCase() + 's',
                     name: xrRef.name,
                   }}
                 >

@@ -8,6 +8,7 @@ vi.mock('../resources', () => ({
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
   BackLink: () => null,
+  Link: ({ children }: any) => <span>{children}</span>,
   Loader: ({ title }: { title: string }) => <div>{title}</div>,
   NameValueTable: ({ rows }: { rows: { name: string; value: any; hide?: boolean }[] }) => (
     <dl>{rows.filter(r => !r.hide).map(r => <div key={r.name}><dt>{r.name}</dt><dd>{r.value}</dd></div>)}</dl>
@@ -73,6 +74,16 @@ describe('CompositionDetail', () => {
     render(<CompositionDetail />);
     expect(screen.getByText('patch-and-transform')).toBeTruthy();
     expect(screen.getByText('function-patch-and-transform')).toBeTruthy();
+  });
+
+  test('renders — for pipeline step with no functionRef', () => {
+    const comp = makeComposition({
+      mode: 'Pipeline',
+      pipeline: [{ step: 'my-step' }],
+    });
+    vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
+    render(<CompositionDetail />);
+    expect(screen.getByText('—')).toBeTruthy();
   });
 
   test('renders resources table when mode is Resources', () => {

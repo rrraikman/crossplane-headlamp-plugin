@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { fetchXRResourceRefs } from './Detail.utils';
+import { fetchXRResourceRefs, resolveXRPlural } from './Detail.utils';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn(),
@@ -7,6 +7,47 @@ vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 const mockRequest = vi.mocked(request);
+
+// ── resolveXRPlural ───────────────────────────────────────────────────────────
+
+describe('resolveXRPlural', () => {
+  beforeEach(() => {
+    mockRequest.mockReset();
+  });
+
+  test('returns plural from discovery when found', async () => {
+    mockRequest.mockResolvedValueOnce({ resources: [{ kind: 'XDatabase', name: 'xdatabases' }] });
+    expect(await resolveXRPlural({ apiVersion: 'example.io/v1', kind: 'XDatabase' })).toBe('xdatabases');
+  });
+
+  test('falls back to kind.toLowerCase() + s when not found in discovery', async () => {
+    mockRequest.mockResolvedValueOnce({ resources: [] });
+    expect(await resolveXRPlural({ apiVersion: 'example.io/v1', kind: 'XDatabase' })).toBe('xdatabases');
+  });
+
+  test('falls back to kind.toLowerCase() + s when request throws', async () => {
+    mockRequest.mockRejectedValueOnce(new Error('network error'));
+    expect(await resolveXRPlural({ apiVersion: 'example.io/v1', kind: 'XDatabase' })).toBe('xdatabases');
+  });
+
+  test('skips subresource entries (containing slash)', async () => {
+    mockRequest.mockResolvedValueOnce({
+      resources: [
+        { kind: 'XDatabase', name: 'xdatabases/status' },
+        { kind: 'XDatabase', name: 'xdatabases' },
+      ],
+    });
+    expect(await resolveXRPlural({ apiVersion: 'example.io/v1', kind: 'XDatabase' })).toBe('xdatabases');
+  });
+
+  test('returns empty string fallback when xrRef is null', async () => {
+    expect(await resolveXRPlural(null)).toBe('s');
+  });
+
+  test('returns kind fallback when apiVersion is missing', async () => {
+    expect(await resolveXRPlural({ kind: 'XDatabase' })).toBe('xdatabases');
+  });
+});
 
 // ── fetchXRResourceRefs ───────────────────────────────────────────────────────
 

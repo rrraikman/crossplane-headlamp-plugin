@@ -282,6 +282,27 @@ Two helpers exist for checking conditions depending on the data shape:
 
 Both return `'True'`, `'False'`, or `'Unknown'`. The `StatusChip` component renders green/red/yellow accordingly.
 
+### Conditions That May Be Legitimately Absent (Crossplane v1)
+
+Crossplane v1 does **not** set a `Ready` condition on Compositions — the condition is simply absent, not `False`. Treating an absent condition as "not ready" produces false positives. Two places must stay consistent:
+
+- **Not Ready panel**: use `collectNotReady(..., { skipIfMissing: true })` so resources with no such condition are silently skipped.
+- **Stat cards**: use `countReadyWhenReported(resources, condType)` (from `overview.utils.ts`) instead of `countReady`. It returns `undefined` — which renders as "N total" (neutral) — when the condition is never reported on any resource, rather than `0/N ready` (warning).
+
+These two must agree: if the condition is absent on all resources, the stat card shows neutral and the Not Ready panel shows nothing. A consistency test in `overview.utils.test.ts` locks this in.
+
+### Condition Message Fallback — Use `||` not `??`
+
+```ts
+// Wrong — passes through empty strings silently:
+message: cond?.message ?? 'No message reported',
+
+// Correct — treats empty string the same as missing:
+message: cond?.message || 'No message reported',
+```
+
+Some providers set `message: ""` on conditions. `??` only catches `null`/`undefined`, so empty strings slip through and the UI shows a blank message cell.
+
 ### Crossplane v2 Spec Layout
 
 Some clusters run Crossplane v2, which nests internal fields under `spec.crossplane` instead of directly on `spec`. Always use the fallback pattern when reading these fields:
@@ -297,27 +318,13 @@ Without the fallback, these fields will silently return `undefined` on v2 cluste
 
 ### Live Updates via Dynamic KubeObject Classes
 
-For detail pages on user-defined CRDs (XRs, Claims, MRs), create a dynamic KubeObject subclass in `useMemo` and use `useList()` to get the same WebSocket watch stream that Flux and other Headlamp plugins use:
+For detail pages on user-defined CRDs (XRs, Claims, MRs), the `useDynamicKubeList` hook in `src/hooks.ts` encapsulates the dynamic subclass pattern:
 
-```tsx
-const XRClass = useMemo(() => {
-  class DynamicXR extends KubeObject {
-    static kind = plural;
-    static apiName = plural;
-    static apiVersion = `${group}/${version}`;
-    static isNamespaced = false;
-  }
-  return DynamicXR;
-}, [group, version, plural]);
-
-const [xrs, error] = XRClass.useList();
-const xr = useMemo(
-  () => xrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
-  [xrs, name]
-);
+```ts
+const [items, error] = useDynamicKubeList(group, version, plural, isNamespaced);
 ```
 
-This avoids both the GET-by-name 404 issue and the need for polling — the SDK handles the watch stream automatically.
+This avoids both the GET-by-name 404 issue and the need for polling — the SDK handles the watch stream automatically. The hook accepts an optional `{ kind, namespace }` when the kind differs from the plural or you need namespace-scoped results.
 
 ### List Responses May Omit Spec
 

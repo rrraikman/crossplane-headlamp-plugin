@@ -3,12 +3,8 @@ import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
 vi.mock('./Detail.utils', () => ({
-  claimStatusLabel: vi.fn((ready: string, synced: string) => {
-    if (ready === 'True' && synced === 'True') return 'Ready';
-    if (synced !== 'True') return 'Sync Failed';
-    return 'Not Ready';
-  }),
   fetchXRResourceRefs: vi.fn().mockResolvedValue([]),
+  resolveXRPlural: vi.fn().mockResolvedValue('xdatabases'),
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
