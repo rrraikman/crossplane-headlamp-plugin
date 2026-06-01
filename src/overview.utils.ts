@@ -34,7 +34,8 @@ export function resolveDetailRoute(entry: NotReadyEntry): DetailRoute | null {
 export function collectNotReady(
   resources: any[] | null,
   kind: string,
-  watchConditions: string[]
+  watchConditions: string[],
+  opts?: { skipIfMissing?: boolean }
 ): NotReadyEntry[] {
   if (!resources) return [];
   const entries: NotReadyEntry[] = [];
@@ -42,13 +43,14 @@ export function collectNotReady(
     const conditions: any[] = r.jsonData?.status?.conditions ?? [];
     for (const condType of watchConditions) {
       const cond = conditions.find((c: any) => c.type === condType);
+      if (opts?.skipIfMissing && !cond) continue;
       if (!cond || cond.status !== 'True') {
         entries.push({
           kind,
           name: r.metadata.name,
           conditionType: condType,
           reason: cond?.reason ?? 'Unknown',
-          message: cond?.message ?? 'No message reported',
+          message: cond?.message || 'No message reported',
         });
         break;
       }

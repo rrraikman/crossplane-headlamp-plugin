@@ -183,4 +183,26 @@ describe('collectNotReady', () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('bare');
   });
+
+  test('uses "No message reported" fallback when condition message is an empty string', () => {
+    const resources = [
+      makeResource('a', [{ type: 'Ready', status: 'False', reason: 'SomeReason', message: '' }]),
+    ];
+    const result = collectNotReady(resources, 'Composition', ['Ready']);
+    expect(result[0].message).toBe('No message reported');
+  });
+
+  test('skipIfMissing: skips resources where the condition does not exist', () => {
+    const resources = [makeResource('no-cond', [])];
+    expect(collectNotReady(resources, 'Composition', ['Ready'], { skipIfMissing: true })).toHaveLength(0);
+  });
+
+  test('skipIfMissing: still includes resources where condition exists but is False', () => {
+    const resources = [
+      makeResource('failing', [{ type: 'Ready', status: 'False', reason: 'ReconcileError', message: 'something broke' }]),
+    ];
+    const result = collectNotReady(resources, 'Composition', ['Ready'], { skipIfMissing: true });
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('failing');
+  });
 });

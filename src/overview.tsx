@@ -175,7 +175,7 @@ export function CrossplaneOverview() {
                   name: item.metadata.name,
                   conditionType: failing?.type ?? 'Ready',
                   reason: failing?.reason ?? 'Unknown',
-                  message: failing?.message ?? 'No message reported',
+                  message: failing?.message || 'No message reported',
                   detailRoute: {
                     routeName: 'crossplane-composite-detail',
                     params: { group, version, plural, name: item.metadata.name },
@@ -233,7 +233,7 @@ export function CrossplaneOverview() {
     ...collectNotReady(providers, 'Provider', ['Installed', 'Healthy']),
     ...collectNotReady(configurations, 'Configuration', ['Installed', 'Healthy']),
     ...collectNotReady(xrds, 'CompositeResourceDefinition', ['Established']),
-    ...collectNotReady(compositions, 'Composition', ['Ready']),
+    ...collectNotReady(compositions, 'Composition', ['Ready'], { skipIfMissing: true }),
     ...failingXrs,
   ];
 
