@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 build/
+coverage/
 
 # Headlamp plugin package output
 *.tar.gz
