@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { collectNotReady, countReady, NotReadyEntry, resolveDetailRoute } from './overview.utils';
+import { collectNotReady, countReady, countReadyWhenReported, NotReadyEntry, resolveDetailRoute } from './overview.utils';
 
 function makeResource(name: string, conditions: Array<{ type: string; status: string; reason?: string; message?: string }>) {
   return {
@@ -204,5 +204,61 @@ describe('collectNotReady', () => {
     const result = collectNotReady(resources, 'Composition', ['Ready'], { skipIfMissing: true });
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('failing');
+  });
+});
+
+// ── countReadyWhenReported ─────────────────────────────────────────────────────
+
+describe('countReadyWhenReported', () => {
+  test('returns null when resources is null (loading state)', () => {
+    expect(countReadyWhenReported(null, 'Ready')).toBeNull();
+  });
+
+  test('returns undefined when no resources report the condition (condition N/A)', () => {
+    const resources = [makeResource('a', []), makeResource('b', [])];
+    expect(countReadyWhenReported(resources, 'Ready')).toBeUndefined();
+  });
+
+  test('returns 0 when resources have the condition but none are True', () => {
+    const resources = [
+      makeResource('a', [{ type: 'Ready', status: 'False' }]),
+      makeResource('b', [{ type: 'Ready', status: 'False' }]),
+    ];
+    expect(countReadyWhenReported(resources, 'Ready')).toBe(0);
+  });
+
+  test('returns correct count when some resources are ready', () => {
+    const resources = [
+      makeResource('a', [{ type: 'Ready', status: 'True' }]),
+      makeResource('b', [{ type: 'Ready', status: 'False' }]),
+      makeResource('c', [{ type: 'Ready', status: 'True' }]),
+    ];
+    expect(countReadyWhenReported(resources, 'Ready')).toBe(2);
+  });
+
+  test('returns total when all resources are ready', () => {
+    const resources = [
+      makeResource('a', [{ type: 'Ready', status: 'True' }]),
+      makeResource('b', [{ type: 'Ready', status: 'True' }]),
+    ];
+    expect(countReadyWhenReported(resources, 'Ready')).toBe(2);
+  });
+
+  // Consistency test: when countReadyWhenReported treats a condition as N/A (undefined),
+  // collectNotReady with skipIfMissing must also produce no entries. These two must agree.
+  test('agrees with collectNotReady skipIfMissing when condition is absent', () => {
+    const resources = [makeResource('a', []), makeResource('b', [])];
+    expect(countReadyWhenReported(resources, 'Ready')).toBeUndefined();
+    expect(collectNotReady(resources, 'Composition', ['Ready'], { skipIfMissing: true })).toEqual([]);
+  });
+
+  // Consistency test: when the condition exists but is False, both functions flag it.
+  test('agrees with collectNotReady skipIfMissing when condition is present and False', () => {
+    const resources = [
+      makeResource('a', [{ type: 'Ready', status: 'True' }]),
+      makeResource('b', [{ type: 'Ready', status: 'False', reason: 'ReconcileError', message: 'oops' }]),
+    ];
+    expect(countReadyWhenReported(resources, 'Ready')).toBe(1);
+    expect(collectNotReady(resources, 'Composition', ['Ready'], { skipIfMissing: true })).toHaveLength(1);
   });
 });

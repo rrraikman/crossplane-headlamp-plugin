@@ -10,6 +10,7 @@ import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
 import {
   collectNotReady,
   countReady,
+  countReadyWhenReported,
   NotReadyEntry,
   resolveDetailRoute,
 } from './overview.utils';
@@ -245,17 +246,7 @@ export function CrossplaneOverview() {
 
       <Box display="flex" gap={2} px={2} pb={2}>
         <StatCard title="Claims" total={claimsStats?.total ?? null} ready={claimsStats?.ready ?? null} routeName="crossplane-claims" />
-        <StatCard
-          title="Compositions"
-          total={compositions?.length ?? null}
-          ready={
-            compositions === null ? null :
-            compositions.some(c => (c.jsonData?.status?.conditions ?? []).some((cond: any) => cond.type === 'Ready'))
-              ? countReady(compositions, 'Ready')
-              : undefined
-          }
-          routeName="crossplane-compositions"
-        />
+        <StatCard title="Compositions" total={compositions?.length ?? null} ready={countReadyWhenReported(compositions, 'Ready')} routeName="crossplane-compositions" />
         <StatCard title="XRDs" total={xrds?.length ?? null} ready={countReady(xrds, 'Established')} routeName="crossplane-xrds" />
         <StatCard title="Configurations" total={configurations?.length ?? null} ready={countReady(configurations, 'Healthy')} routeName="crossplane-packages" />
         <StatCard title="Providers" total={providers?.length ?? null} ready={countReady(providers, 'Healthy')} routeName="crossplane-packages" />

@@ -18,6 +18,20 @@ export function countReady(resources: any[] | null, condType: string): number | 
   return resources === null ? null : resources.filter(r => hasCondition(r, condType)).length;
 }
 
+// Returns null (loading), undefined (condition never reported — treat as N/A), or the ready count.
+// Use this when a condition type may legitimately be absent (e.g. Crossplane v1 Compositions).
+export function countReadyWhenReported(
+  resources: any[] | null,
+  condType: string
+): number | null | undefined {
+  if (resources === null) return null;
+  const anyReported = resources.some(r =>
+    (r.jsonData?.status?.conditions ?? []).some((c: any) => c.type === condType)
+  );
+  if (!anyReported) return undefined;
+  return resources.filter(r => hasCondition(r, condType)).length;
+}
+
 export function resolveDetailRoute(entry: NotReadyEntry): DetailRoute | null {
   if (entry.detailRoute) return entry.detailRoute;
   if (entry.kind === 'Provider')
