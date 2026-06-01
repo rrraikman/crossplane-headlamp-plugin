@@ -175,7 +175,7 @@ export function CrossplaneOverview() {
                   name: item.metadata.name,
                   conditionType: failing?.type ?? 'Ready',
                   reason: failing?.reason ?? 'Unknown',
-                  message: failing?.message ?? 'No message reported',
+                  message: failing?.message || 'No message reported',
                   detailRoute: {
                     routeName: 'crossplane-composite-detail',
                     params: { group, version, plural, name: item.metadata.name },
@@ -233,7 +233,7 @@ export function CrossplaneOverview() {
     ...collectNotReady(providers, 'Provider', ['Installed', 'Healthy']),
     ...collectNotReady(configurations, 'Configuration', ['Installed', 'Healthy']),
     ...collectNotReady(xrds, 'CompositeResourceDefinition', ['Established']),
-    ...collectNotReady(compositions, 'Composition', ['Ready']),
+    ...collectNotReady(compositions, 'Composition', ['Ready'], { skipIfMissing: true }),
     ...failingXrs,
   ];
 
@@ -245,7 +245,7 @@ export function CrossplaneOverview() {
 
       <Box display="flex" gap={2} px={2} pb={2}>
         <StatCard title="Claims" total={claimsStats?.total ?? null} ready={claimsStats?.ready ?? null} routeName="crossplane-claims" />
-        <StatCard title="Compositions" total={compositions?.length ?? null} routeName="crossplane-compositions" />
+        <StatCard title="Compositions" total={compositions?.length ?? null} ready={countReady(compositions, 'Ready')} routeName="crossplane-compositions" />
         <StatCard title="XRDs" total={xrds?.length ?? null} ready={countReady(xrds, 'Established')} routeName="crossplane-xrds" />
         <StatCard title="Configurations" total={configurations?.length ?? null} ready={countReady(configurations, 'Healthy')} routeName="crossplane-packages" />
         <StatCard title="Providers" total={providers?.length ?? null} ready={countReady(providers, 'Healthy')} routeName="crossplane-packages" />
