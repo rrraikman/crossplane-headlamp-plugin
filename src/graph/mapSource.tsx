@@ -3,17 +3,8 @@ import { registerMapSource } from '@kinvolk/headlamp-plugin/lib';
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { useEffect, useMemo, useState } from 'react';
 import { CompositeResourceDefinition,Composition } from '../resources';
-import { getReferenceableVersion, rawConditionStatus } from '../utils';
-
-type NodeStatus = 'success' | 'warning' | 'error';
-
-function nodeStatus(conditions: any[]): NodeStatus {
-  const ready = rawConditionStatus(conditions, 'Ready');
-  const synced = rawConditionStatus(conditions, 'Synced');
-  if (ready === 'True' && synced === 'True') return 'success';
-  if (synced === 'False' || ready === 'False') return 'error';
-  return 'warning';
-}
+import { getReferenceableVersion } from '../utils';
+import { nodeStatus } from './mapSource.utils';
 
 function useCrossplaneGraphData() {
   const [xrds] = CompositeResourceDefinition.useList();

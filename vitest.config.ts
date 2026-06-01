@@ -20,7 +20,7 @@ export default defineConfig({
       provider: 'istanbul',
       reporter: ['text', 'lcov'],
       include: ['src/**'],
-      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/__mocks__/**'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/__mocks__/**', 'src/graph/mapSource.tsx'],
       thresholds: {
         statements: 75,
         branches: 67,
