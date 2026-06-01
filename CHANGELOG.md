@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.2.0...crossplane-headlamp-plugin-v1.3.0) (2026-06-01)
+
+
+### Features
+
+* function links, XR plural fix, Compositions in Not Ready panel, more tests ([#45](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/45)) ([fc30468](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/fc30468dc05fc00575510363ab08664d0c0a4ae7))
+
 ## [1.2.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.1.1...crossplane-headlamp-plugin-v1.2.0) (2026-05-31)
 
 
