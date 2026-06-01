@@ -1,5 +1,21 @@
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 
+export async function resolveXRPlural(xrRef: any): Promise<string> {
+  if (!xrRef?.apiVersion || !xrRef?.kind) return (xrRef?.kind ?? '').toLowerCase() + 's';
+  const slashIdx = xrRef.apiVersion.lastIndexOf('/');
+  const group = xrRef.apiVersion.slice(0, slashIdx);
+  const version = xrRef.apiVersion.slice(slashIdx + 1);
+  try {
+    const discovery = await request(`/apis/${group}/${version}`);
+    const resource = (discovery.resources ?? []).find(
+      (r: any) => r.kind === xrRef.kind && !r.name.includes('/')
+    );
+    return resource?.name ?? xrRef.kind.toLowerCase() + 's';
+  } catch {
+    return xrRef.kind.toLowerCase() + 's';
+  }
+}
+
 export async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | null> {
   if (!resourceRef?.apiVersion || !resourceRef?.kind || !resourceRef?.name) return null;
 

@@ -61,4 +61,33 @@ describe('ManagedResourceBrowser', () => {
       expect(screen.getAllByText('NoSQLDB').length).toBeGreaterThan(0);
     });
   });
+
+  test('falls back to category filter when label selector returns empty', async () => {
+    vi.mocked(request).mockImplementation((path: string) => {
+      if (path.includes('labelSelector')) return Promise.resolve({ items: [] });
+      if (path === '/apis/apiextensions.k8s.io/v1/customresourcedefinitions') {
+        return Promise.resolve({
+          items: [
+            makeCRD('Bucket', 's3.aws.crossplane.io', 'buckets'),
+            { spec: { group: 'other.io', names: { kind: 'Thing', plural: 'things', categories: [] }, versions: [{ name: 'v1', storage: true }] } },
+          ],
+        });
+      }
+      // Count fetch for Bucket — return 1 instance so hideEmpty doesn't filter it
+      return Promise.resolve({ items: [{ metadata: { name: 'my-bucket' } }] });
+    });
+    render(<ManagedResourceBrowser />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Bucket').length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText('Thing')).toBeNull();
+  });
+
+  test('shows error message when CRD fetch fails', async () => {
+    vi.mocked(request).mockRejectedValue(new Error('forbidden'));
+    render(<ManagedResourceBrowser />);
+    await waitFor(() => {
+      expect(screen.getByText('forbidden')).toBeTruthy();
+    });
+  });
 });

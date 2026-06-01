@@ -78,8 +78,14 @@ describe('resolveDetailRoute', () => {
     });
   });
 
+  test('returns composition route for Composition kind', () => {
+    expect(resolveDetailRoute(makeEntry('Composition', 'my-comp'))).toEqual({
+      routeName: 'crossplane-composition-detail',
+      params: { name: 'my-comp' },
+    });
+  });
+
   test('returns null for unknown kinds', () => {
-    expect(resolveDetailRoute(makeEntry('Composition', 'my-comp'))).toBeNull();
     expect(resolveDetailRoute(makeEntry('ManagedResource', 'my-mr'))).toBeNull();
   });
 });

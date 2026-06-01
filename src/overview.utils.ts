@@ -26,6 +26,8 @@ export function resolveDetailRoute(entry: NotReadyEntry): DetailRoute | null {
     return { routeName: 'crossplane-configuration-detail', params: { name: entry.name } };
   if (entry.kind === 'CompositeResourceDefinition')
     return { routeName: 'crossplane-xrd-detail', params: { name: entry.name } };
+  if (entry.kind === 'Composition')
+    return { routeName: 'crossplane-composition-detail', params: { name: entry.name } };
   return null;
 }
 

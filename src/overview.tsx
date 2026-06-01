@@ -233,6 +233,7 @@ export function CrossplaneOverview() {
     ...collectNotReady(providers, 'Provider', ['Installed', 'Healthy']),
     ...collectNotReady(configurations, 'Configuration', ['Installed', 'Healthy']),
     ...collectNotReady(xrds, 'CompositeResourceDefinition', ['Established']),
+    ...collectNotReady(compositions, 'Composition', ['Ready']),
     ...failingXrs,
   ];
 

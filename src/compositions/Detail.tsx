@@ -1,5 +1,6 @@
 import {
   BackLink,
+  Link as HeadlampLink,
   Loader,
   NameValueTable,
   SectionBox,
@@ -58,7 +59,20 @@ export function CompositionDetail() {
           <SimpleTable
             columns={[
               { label: 'Step', getter: (s: any) => s.step },
-              { label: 'Function', getter: (s: any) => s.functionRef?.name ?? '—' },
+              {
+                label: 'Function',
+                getter: (s: any) =>
+                  s.functionRef?.name ? (
+                    <HeadlampLink
+                      routeName="crossplane-function-detail"
+                      params={{ name: s.functionRef.name }}
+                    >
+                      {s.functionRef.name}
+                    </HeadlampLink>
+                  ) : (
+                    '—'
+                  ),
+              },
             ]}
             data={pipeline}
             emptyMessage="No pipeline steps defined"
