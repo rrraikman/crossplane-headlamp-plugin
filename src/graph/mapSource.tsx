@@ -72,10 +72,7 @@ function useCrossplaneGraphData() {
   }, [xrdsKey]);
 
   return useMemo(() => {
-    // Block only until both data sources have had a chance to resolve.
-    // Compositions come from a KubeObject watch and XR items from imperative requests;
-    // either can be slower than the other, so we render whatever is ready rather than
-    // waiting for all four to be non-null simultaneously.
+    console.log('[crossplane-map] compositions:', compositions, 'xrItems:', xrItems, 'claimItems:', claimItems);
     if (!compositions && xrItems === null) return null;
 
     const nodes: any[] = [];
@@ -144,6 +141,7 @@ function useCrossplaneGraphData() {
       }
     }
 
+    console.log('[crossplane-map] returning nodes:', nodes.length, 'edges:', edges.length);
     return { nodes, edges };
   }, [compositions, xrItems, claimItems]);
 }
