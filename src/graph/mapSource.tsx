@@ -72,7 +72,6 @@ function useCrossplaneGraphData() {
   }, [xrdsKey]);
 
   return useMemo(() => {
-    console.log('[crossplane-map] compositions:', compositions, 'xrItems:', xrItems, 'claimItems:', claimItems);
     if (!compositions && xrItems === null) return null;
 
     const nodes: any[] = [];
@@ -92,13 +91,16 @@ function useCrossplaneGraphData() {
       const uid = xr.metadata?.uid;
       if (!uid) continue;
 
+      // kubeObject is required for Headlamp's map namespace filter to recognise the
+      // resource's namespace. label/subtitle are kept explicit because our duck-typed
+      // object doesn't carry a static `kind` property for Headlamp to derive them from.
       nodes.push({
         id: uid,
         label: xr.metadata.name,
-        subtitle: xr.__kind,
+        subtitle: xr.__kind || xr.kind,
+        kubeObject: { metadata: xr.metadata, jsonData: xr },
         status: nodeStatus(xr.status?.conditions ?? []),
         weight: 1200,
-        data: xr,
       });
 
       const compName = (xr.spec?.crossplane?.compositionRef ?? xr.spec?.compositionRef)?.name;
@@ -123,9 +125,9 @@ function useCrossplaneGraphData() {
         id: uid,
         label: claim.metadata.name,
         subtitle: `${claim.__kind} · ${claim.metadata.namespace}`,
+        kubeObject: { metadata: claim.metadata, jsonData: claim },
         status: nodeStatus(claim.status?.conditions ?? []),
         weight: 1500,
-        data: claim,
       });
 
       const xrRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
@@ -141,7 +143,6 @@ function useCrossplaneGraphData() {
       }
     }
 
-    console.log('[crossplane-map] returning nodes:', nodes.length, 'edges:', edges.length);
     return { nodes, edges };
   }, [compositions, xrItems, claimItems]);
 }
