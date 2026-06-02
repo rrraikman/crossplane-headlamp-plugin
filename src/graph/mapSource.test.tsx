@@ -5,6 +5,10 @@ vi.mock('@kinvolk/headlamp-plugin/lib', () => ({
   registerMapSource: vi.fn(),
 }));
 
+vi.mock('../hooks', () => ({
+  makeKubeObject: (json: any) => ({ metadata: json.metadata, jsonData: json }),
+}));
+
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
 }));

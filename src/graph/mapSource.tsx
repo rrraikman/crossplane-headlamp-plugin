@@ -2,6 +2,7 @@ import { Icon } from '@iconify/react';
 import { registerMapSource } from '@kinvolk/headlamp-plugin/lib';
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { useEffect, useMemo, useState } from 'react';
+import { makeKubeObject } from '../hooks';
 import { CompositeResourceDefinition,Composition } from '../resources';
 import { getReferenceableVersion } from '../utils';
 import { nodeStatus } from './mapSource.utils';
@@ -32,14 +33,16 @@ function useCrossplaneGraphData() {
       const version = getReferenceableVersion(spec);
       const plural = spec.names.plural;
       const kind = spec.names.kind;
+      const apiVersion = `${group}/${version}`;
+      const isNamespaced = spec.scope === 'Namespaced';
       return request(`/apis/${group}/${version}/${plural}`)
         .then((data: any) =>
           (data.items ?? []).map((item: any) => ({
             ...item,
             __kind: kind,
-            __group: group,
-            __version: version,
             __plural: plural,
+            __apiVersion: apiVersion,
+            __isNamespaced: isNamespaced,
           }))
         )
         .catch(() => []);
@@ -53,14 +56,15 @@ function useCrossplaneGraphData() {
         const version = getReferenceableVersion(spec);
         const claimPlural = spec.claimNames.plural;
         const claimKind = spec.claimNames.kind;
+        const apiVersion = `${group}/${version}`;
         return request(`/apis/${group}/${version}/${claimPlural}`)
           .then((data: any) =>
             (data.items ?? []).map((item: any) => ({
               ...item,
               __kind: claimKind,
-              __group: group,
-              __version: version,
               __plural: claimPlural,
+              __apiVersion: apiVersion,
+              __isNamespaced: true,
             }))
           )
           .catch(() => []);
@@ -91,14 +95,11 @@ function useCrossplaneGraphData() {
       const uid = xr.metadata?.uid;
       if (!uid) continue;
 
-      // kubeObject is required for Headlamp's map namespace filter to recognise the
-      // resource's namespace. label/subtitle are kept explicit because our duck-typed
-      // object doesn't carry a static `kind` property for Headlamp to derive them from.
       nodes.push({
         id: uid,
         label: xr.metadata.name,
-        subtitle: xr.__kind || xr.kind,
-        kubeObject: { metadata: xr.metadata, jsonData: xr },
+        subtitle: xr.__kind,
+        kubeObject: makeKubeObject(xr, xr.__kind, xr.__plural, xr.__apiVersion, xr.__isNamespaced),
         status: nodeStatus(xr.status?.conditions ?? []),
         weight: 1200,
       });
@@ -125,7 +126,7 @@ function useCrossplaneGraphData() {
         id: uid,
         label: claim.metadata.name,
         subtitle: `${claim.__kind} · ${claim.metadata.namespace}`,
-        kubeObject: { metadata: claim.metadata, jsonData: claim },
+        kubeObject: makeKubeObject(claim, claim.__kind, claim.__plural, claim.__apiVersion, true),
         status: nodeStatus(claim.status?.conditions ?? []),
         weight: 1500,
       });
