@@ -7,6 +7,7 @@ import { CompositionDetail } from './compositions/Detail';
 import { CompositionList } from './compositions/List';
 import { FunctionDetail } from './functions/Detail';
 import { FunctionList } from './functions/List';
+import { registerCrossplaneMapSource } from './graph/mapSource';
 import { ManagedResourceDetail } from './managed/Detail';
 import { ManagedResourceBrowser } from './managed/List';
 import { ManagedResourceTypeList } from './managed/TypeList';
@@ -16,6 +17,8 @@ import { PackageList } from './packages/List';
 import { ProviderDetail } from './packages/ProviderDetail';
 import { XRDDetail } from './xrds/Detail';
 import { XRDList } from './xrds/List';
+
+registerCrossplaneMapSource();
 
 // ── Sidebar ──────────────────────────────────────────────────────────────────
 
