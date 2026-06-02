@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react';
 import {
   BackLink,
   Link as HeadlampLink,
@@ -6,7 +7,7 @@ import {
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Box } from '@mui/material';
+import { Box, Chip, Paper, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { Composition } from '../resources';
@@ -56,27 +57,53 @@ export function CompositionDetail() {
 
       {mode === 'Pipeline' ? (
         <SectionBox title={`Pipeline Steps (${pipeline.length})`}>
-          <SimpleTable
-            columns={[
-              { label: 'Step', getter: (s: any) => s.step },
-              {
-                label: 'Function',
-                getter: (s: any) =>
-                  s.functionRef?.name ? (
-                    <HeadlampLink
-                      routeName="crossplane-function-detail"
-                      params={{ name: s.functionRef.name }}
-                    >
-                      {s.functionRef.name}
-                    </HeadlampLink>
-                  ) : (
-                    '—'
-                  ),
-              },
-            ]}
-            data={pipeline}
-            emptyMessage="No pipeline steps defined"
-          />
+          {pipeline.length === 0 ? (
+            <Typography color="text.secondary" sx={{ p: 2 }}>
+              No pipeline steps defined
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', p: 2, gap: 0 }}>
+              {pipeline.map((step: any, i: number) => (
+                <Box key={step.step ?? i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderLeft: '4px solid',
+                      borderLeftColor: 'primary.main',
+                      minWidth: 280,
+                    }}
+                  >
+                    <Typography variant="subtitle2" fontFamily="monospace" gutterBottom>
+                      {step.step}
+                    </Typography>
+                    {step.functionRef?.name && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Icon icon="mdi:function" width={16} />
+                        <Chip
+                          size="small"
+                          label={
+                            <HeadlampLink
+                              routeName="crossplane-function-detail"
+                              params={{ name: step.functionRef.name }}
+                            >
+                              {step.functionRef.name}
+                            </HeadlampLink>
+                          }
+                          variant="outlined"
+                        />
+                      </Box>
+                    )}
+                  </Paper>
+                  {i < pipeline.length - 1 && (
+                    <Box sx={{ pl: 2, py: 0.5 }}>
+                      <Icon icon="mdi:arrow-down" width={20} />
+                    </Box>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
         </SectionBox>
       ) : (
         <SectionBox title={`Resources (${resources.length})`}>
