@@ -23,6 +23,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null }));
+vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 
 import { Provider, ProviderRevision } from '../resources';
 import { ProviderDetail } from './ProviderDetail';

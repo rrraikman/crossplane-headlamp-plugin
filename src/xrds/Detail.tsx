@@ -9,6 +9,7 @@ import {
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { EventsTable } from '../components/EventsTable';
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
 import { buildNotReadyInstances, debugMessage, NotReadyInstance, sortByReady } from './Detail.utils';
@@ -247,6 +248,9 @@ export function XRDDetail() {
           </SectionBox>
         );
       })()}
+
+      {/* 8. Events */}
+      <EventsTable resourceName={name} resourceKind="CompositeResourceDefinition" />
     </Box>
   );
 }

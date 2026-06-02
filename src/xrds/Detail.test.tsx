@@ -40,6 +40,8 @@ vi.mock('./SchemaTree', () => ({
     schema ? <div data-testid="schema-tree">Schema</div> : null,
 }));
 
+vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
+
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { XRDDetail } from './Detail';
 

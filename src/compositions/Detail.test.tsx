@@ -34,6 +34,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null }));
+vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 
 import { Composition } from '../resources';
 import { CompositionDetail } from './Detail';

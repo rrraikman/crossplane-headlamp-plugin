@@ -10,6 +10,7 @@ import { Box, Chip } from '@mui/material';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
+import { EventsTable } from '../components/EventsTable';
 import { Composition, CrossplaneFunction, CrossplaneFunctionRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
 import { packageStatusLabel } from './Detail.utils';
@@ -58,6 +59,8 @@ export function FunctionDetail() {
       <SectionBox title="Conditions">
         <ConditionsTable conditions={conditions} />
       </SectionBox>
+
+      <EventsTable resourceName={name} resourceKind={fn.jsonData?.kind ?? 'Function'} />
 
       {revision && (
         <SectionBox title={`Function Revision: ${revisionName}`}>

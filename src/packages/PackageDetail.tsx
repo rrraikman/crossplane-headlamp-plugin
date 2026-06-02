@@ -7,6 +7,7 @@ import {
 import { Box, Chip } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
+import { EventsTable } from '../components/EventsTable';
 import { Configuration, ConfigurationRevision, Provider, ProviderRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
 import { packageStatusLabel } from './Detail.utils';
@@ -56,6 +57,8 @@ export function PackageDetail({ kind }: PackageDetailProps) {
       <SectionBox title="Conditions">
         <ConditionsTable conditions={conditions} />
       </SectionBox>
+
+      <EventsTable resourceName={name} resourceKind={kind} />
 
       {revision && (
         <SectionBox title={`${revisionLabel}: ${revisionName}`}>
