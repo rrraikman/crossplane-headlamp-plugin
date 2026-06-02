@@ -72,13 +72,17 @@ function useCrossplaneGraphData() {
   }, [xrdsKey]);
 
   return useMemo(() => {
-    if (!xrds || !compositions || xrItems === null || claimItems === null) return null;
+    // Block only until both data sources have had a chance to resolve.
+    // Compositions come from a KubeObject watch and XR items from imperative requests;
+    // either can be slower than the other, so we render whatever is ready rather than
+    // waiting for all four to be non-null simultaneously.
+    if (!compositions && xrItems === null) return null;
 
     const nodes: any[] = [];
     const edges: any[] = [];
 
-    // Composition nodes (KubeObject instances — Headlamp sets label/subtitle automatically)
-    for (const comp of compositions as any[]) {
+    // Composition nodes
+    for (const comp of (compositions ?? []) as any[]) {
       nodes.push({
         id: comp.metadata.uid,
         kubeObject: comp,
@@ -87,7 +91,7 @@ function useCrossplaneGraphData() {
     }
 
     // XR nodes + XR→Composition edges
-    for (const xr of xrItems) {
+    for (const xr of xrItems ?? []) {
       const uid = xr.metadata?.uid;
       if (!uid) continue;
 
@@ -101,7 +105,7 @@ function useCrossplaneGraphData() {
       });
 
       const compName = (xr.spec?.crossplane?.compositionRef ?? xr.spec?.compositionRef)?.name;
-      if (compName) {
+      if (compName && compositions) {
         const comp = (compositions as any[]).find((c: any) => c.metadata.name === compName);
         if (comp?.metadata.uid) {
           edges.push({
@@ -114,7 +118,7 @@ function useCrossplaneGraphData() {
     }
 
     // Claim nodes + Claim→XR edges
-    for (const claim of claimItems) {
+    for (const claim of claimItems ?? []) {
       const uid = claim.metadata?.uid;
       if (!uid) continue;
 
@@ -128,7 +132,7 @@ function useCrossplaneGraphData() {
       });
 
       const xrRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
-      if (xrRef?.name) {
+      if (xrRef?.name && xrItems) {
         const xr = xrItems.find((x: any) => x.metadata.name === xrRef.name);
         if (xr?.metadata?.uid) {
           edges.push({
@@ -141,7 +145,7 @@ function useCrossplaneGraphData() {
     }
 
     return { nodes, edges };
-  }, [xrds, compositions, xrItems, claimItems]);
+  }, [compositions, xrItems, claimItems]);
 }
 
 export function registerCrossplaneMapSource() {

@@ -62,9 +62,22 @@ describe('useCrossplaneGraphData', () => {
     vi.mocked(request).mockResolvedValue({ items: [] });
   });
 
-  test('returns null while XRDs are still loading', () => {
+  test('returns null while both compositions and XR items are still loading', () => {
     const { result } = renderHook(() => useData());
     expect(result.current).toBeNull();
+  });
+
+  test('returns composition nodes immediately even when XRDs have not loaded yet', async () => {
+    const comp = { metadata: { uid: 'comp-uid', name: 'my-composition' } };
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
+    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+
+    const { result } = renderHook(() => useData());
+    await waitFor(() => expect(result.current).not.toBeNull());
+
+    const node = result.current.nodes.find((n: any) => n.id === 'comp-uid');
+    expect(node).toBeDefined();
+    expect(result.current.edges).toHaveLength(0);
   });
 
   test('returns empty nodes and edges when cluster has no XRDs', async () => {
