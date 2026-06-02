@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.5.0...crossplane-headlamp-plugin-v1.6.0) (2026-06-02)
+
+
+### Features
+
+* **xrds:** add collapsible OpenAPI schema browser ([#53](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/53)) ([291e06e](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/291e06efdc5c04f81f3b597c63aa384d4c463b11))
+
 ## [1.5.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.4.0...crossplane-headlamp-plugin-v1.5.0) (2026-06-02)
 
 
