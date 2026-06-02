@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.4.0...crossplane-headlamp-plugin-v1.5.0) (2026-06-02)
+
+
+### Features
+
+* **compositions:** replace pipeline table with visual flow diagram ([#52](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/52)) ([1a05378](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/1a053789f7b7aed4a918ce2172886da759ea37cb))
+
 ## [1.4.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.3.0...crossplane-headlamp-plugin-v1.4.0) (2026-06-02)
 
 
