@@ -197,6 +197,27 @@ Releases are automated via Release Please: it opens a PR on every push to `main`
 - Keep plugins focused on a single feature or enhancement
 - Document your plugin's functionality in the README.md
 
+### Empty State Design
+
+**Always show sections with an empty-state message rather than hiding them when data is absent.** Users should be able to see that a section exists and understand there is simply nothing to show yet, rather than wondering whether the feature is missing.
+
+```tsx
+// Wrong — section disappears when empty:
+{conditions.length > 0 && (
+  <SectionBox title="Conditions">
+    <ConditionsTable conditions={conditions} />
+  </SectionBox>
+)}
+
+// Correct — section always visible with empty message:
+<SectionBox title="Conditions">
+  <ConditionsTable conditions={conditions} />
+</SectionBox>
+// (ConditionsTable already renders "No conditions reported" when the array is empty)
+```
+
+**Exception:** Sections that represent an error or warning state (e.g. "Not Ready instances") should remain hidden when there is nothing to report. Showing an empty error panel implies something might be wrong when everything is actually fine.
+
 ## API Documentation
 
 For detailed API documentation, visit:

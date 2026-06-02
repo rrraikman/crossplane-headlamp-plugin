@@ -60,8 +60,6 @@ export function FunctionDetail() {
         <ConditionsTable conditions={conditions} />
       </SectionBox>
 
-      <EventsTable resourceName={name} resourceKind={fn.jsonData?.kind ?? 'Function'} />
-
       {revision && (
         <SectionBox title={`Function Revision: ${revisionName}`}>
           <NameValueTable
@@ -95,6 +93,8 @@ export function FunctionDetail() {
           emptyMessage="No compositions reference this function"
         />
       </SectionBox>
+
+      <EventsTable resourceName={name} resourceKind={fn.jsonData?.kind ?? 'Function'} />
     </Box>
   );
 }

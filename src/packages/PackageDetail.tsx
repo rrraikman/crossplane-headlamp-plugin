@@ -58,8 +58,6 @@ export function PackageDetail({ kind }: PackageDetailProps) {
         <ConditionsTable conditions={conditions} />
       </SectionBox>
 
-      <EventsTable resourceName={name} resourceKind={kind} />
-
       {revision && (
         <SectionBox title={`${revisionLabel}: ${revisionName}`}>
           <NameValueTable
@@ -74,6 +72,8 @@ export function PackageDetail({ kind }: PackageDetailProps) {
           </Box>
         </SectionBox>
       )}
+
+      <EventsTable resourceName={name} resourceKind={kind} />
     </Box>
   );
 }

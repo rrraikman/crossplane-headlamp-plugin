@@ -50,13 +50,9 @@ export function CompositionDetail() {
         />
       </SectionBox>
 
-      {conditions.length > 0 && (
-        <SectionBox title="Conditions">
-          <ConditionsTable conditions={conditions} />
-        </SectionBox>
-      )}
-
-      <EventsTable resourceName={name} resourceKind="Composition" />
+      <SectionBox title="Conditions">
+        <ConditionsTable conditions={conditions} />
+      </SectionBox>
 
       {mode === 'Pipeline' ? (
         <SectionBox title={`Pipeline Steps (${pipeline.length})`}>
@@ -122,6 +118,8 @@ export function CompositionDetail() {
           />
         </SectionBox>
       )}
+
+      <EventsTable resourceName={name} resourceKind="Composition" />
     </Box>
   );
 }
