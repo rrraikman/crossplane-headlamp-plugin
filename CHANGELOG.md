@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.3.0...crossplane-headlamp-plugin-v1.4.0) (2026-06-02)
+
+
+### Features
+
+* add Crossplane resource relationship graph to Headlamp map view ([#48](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/48)) ([18c5c8b](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/18c5c8b0ea3539071d0a54c94f4314c382892512))
+
 ## [1.3.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.2.0...crossplane-headlamp-plugin-v1.3.0) (2026-06-01)
 
 
