@@ -23,11 +23,11 @@ import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { EventsTable } from './EventsTable';
 
 describe('EventsTable', () => {
-  test('renders nothing when no events returned', async () => {
+  test('shows empty message when no events returned', async () => {
     vi.mocked(request).mockResolvedValue({ items: [] });
-    const { container } = render(<EventsTable resourceName="my-xdb" resourceKind="XDatabase" />);
+    render(<EventsTable resourceName="my-xdb" resourceKind="XDatabase" />);
     await waitFor(() => {
-      expect(container.firstChild).toBeNull();
+      expect(screen.getByText('No recent events')).toBeTruthy();
     });
   });
 

@@ -10,6 +10,7 @@ import { Box, Chip } from '@mui/material';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
+import { EventsTable } from '../components/EventsTable';
 import { Composition, CrossplaneFunction, CrossplaneFunctionRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
 import { packageStatusLabel } from './Detail.utils';
@@ -92,6 +93,8 @@ export function FunctionDetail() {
           emptyMessage="No compositions reference this function"
         />
       </SectionBox>
+
+      <EventsTable resourceName={name} resourceKind={fn.jsonData?.kind ?? 'Function'} />
     </Box>
   );
 }

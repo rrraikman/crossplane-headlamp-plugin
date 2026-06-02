@@ -32,8 +32,6 @@ export function EventsTable({
 
   const sorted = events ? sortEvents(events) : null;
 
-  if (events?.length === 0) return null;
-
   return (
     <SectionBox title={`Events (${events?.length ?? '…'})`}>
       <SimpleTable
@@ -72,7 +70,7 @@ export function EventsTable({
           },
         ]}
         data={sorted}
-        emptyMessage="No events found"
+        emptyMessage="No recent events"
       />
     </SectionBox>
   );

@@ -10,6 +10,7 @@ import {
 import { Box, Chip, Paper, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
+import { EventsTable } from '../components/EventsTable';
 import { Composition } from '../resources';
 import { age, conditionStatus, StatusChip } from '../utils';
 
@@ -48,12 +49,6 @@ export function CompositionDetail() {
           ]}
         />
       </SectionBox>
-
-      {conditions.length > 0 && (
-        <SectionBox title="Conditions">
-          <ConditionsTable conditions={conditions} />
-        </SectionBox>
-      )}
 
       {mode === 'Pipeline' ? (
         <SectionBox title={`Pipeline Steps (${pipeline.length})`}>
@@ -119,6 +114,12 @@ export function CompositionDetail() {
           />
         </SectionBox>
       )}
+
+      <SectionBox title="Conditions">
+        <ConditionsTable conditions={conditions} />
+      </SectionBox>
+
+      <EventsTable resourceName={name} resourceKind="Composition" />
     </Box>
   );
 }
