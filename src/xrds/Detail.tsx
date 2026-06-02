@@ -9,9 +9,10 @@ import {
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CompositeResourceDefinition,Composition } from '../resources';
+import { CompositeResourceDefinition, Composition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
 import { buildNotReadyInstances, debugMessage, NotReadyInstance, sortByReady } from './Detail.utils';
+import { SchemaTree } from './SchemaTree';
 
 function MessageCell({ conditions }: { conditions: any[] }) {
   const msg = debugMessage(conditions);
@@ -158,6 +159,18 @@ export function XRDDetail() {
           ]}
         />
       </SectionBox>
+
+      {/* 2. Schema */}
+      {(() => {
+        const refVersion = spec.versions?.find((v: any) => v.referenceable);
+        const schema = refVersion?.schema?.openAPIV3Schema;
+        if (!schema) return null;
+        return (
+          <SectionBox title={`Schema (${refVersion.name})`}>
+            <SchemaTree schema={schema} />
+          </SectionBox>
+        );
+      })()}
 
       {/* 3. Not Ready instances */}
       {notReadyInstances.length > 0 && (

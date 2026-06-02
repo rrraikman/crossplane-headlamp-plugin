@@ -35,6 +35,11 @@ vi.mock('react-router-dom', () => ({
   useParams: vi.fn().mockReturnValue({ name: 'xdatabases.example.io' }),
 }));
 
+vi.mock('./SchemaTree', () => ({
+  SchemaTree: ({ schema }: any) =>
+    schema ? <div data-testid="schema-tree">Schema</div> : null,
+}));
+
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { XRDDetail } from './Detail';
 
@@ -84,6 +89,29 @@ describe('XRDDetail', () => {
     vi.mocked(Composition.useList).mockReturnValue([[], null]);
     render(<XRDDetail />);
     expect(screen.getByText('Not Established')).toBeTruthy();
+  });
+
+  test('renders schema section when XRD version has openAPIV3Schema', () => {
+    const xrd = makeXRD({
+      versions: [
+        {
+          name: 'v1alpha1',
+          served: true,
+          referenceable: true,
+          schema: {
+            openAPIV3Schema: {
+              type: 'object',
+              properties: { spec: { type: 'object' } },
+            },
+          },
+        },
+      ],
+    });
+    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([xrd, null]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    render(<XRDDetail />);
+    expect(screen.getByText('Schema (v1alpha1)')).toBeTruthy();
+    expect(screen.getByTestId('schema-tree')).toBeTruthy();
   });
 
   test('shows referencing compositions', () => {
