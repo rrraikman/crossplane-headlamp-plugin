@@ -1,6 +1,22 @@
 import { KubeObject } from '@kinvolk/headlamp-plugin/lib/k8s/cluster';
 import { useMemo } from 'react';
 
+export function makeKubeObject(
+  json: any,
+  kind: string,
+  plural: string,
+  apiVersion: string,
+  isNamespaced: boolean
+): any {
+  class Dynamic extends KubeObject {
+    static kind = kind;
+    static apiName = plural;
+    static apiVersion = apiVersion;
+    static isNamespaced = isNamespaced;
+  }
+  return new Dynamic(json);
+}
+
 export function useDynamicKubeList(
   group: string | undefined,
   version: string | undefined,

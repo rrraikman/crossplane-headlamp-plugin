@@ -36,5 +36,5 @@ Thumbs.db
 .eslintcache
 *.tsbuildinfo
 
-# Claude Code local settings
-.claude/settings.local.json
+# Claude Code local settings and worktree metadata
+.claude/
