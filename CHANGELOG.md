@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.6.0...crossplane-headlamp-plugin-v1.7.0) (2026-06-02)
+
+
+### Features
+
+* **events:** add events section to remaining detail pages ([#54](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/54)) ([1afd7aa](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/1afd7aa309a30a7882621b1a21e06d410fe501bc))
+
 ## [1.6.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.5.0...crossplane-headlamp-plugin-v1.6.0) (2026-06-02)
 
 
