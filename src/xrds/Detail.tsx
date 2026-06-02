@@ -160,19 +160,7 @@ export function XRDDetail() {
         />
       </SectionBox>
 
-      {/* 2. Schema */}
-      {(() => {
-        const refVersion = spec.versions?.find((v: any) => v.referenceable);
-        const schema = refVersion?.schema?.openAPIV3Schema;
-        if (!schema) return null;
-        return (
-          <SectionBox title={`Schema (${refVersion.name})`}>
-            <SchemaTree schema={schema} />
-          </SectionBox>
-        );
-      })()}
-
-      {/* 3. Not Ready instances */}
+      {/* 2. Not Ready instances */}
       {notReadyInstances.length > 0 && (
         <SectionBox title={`Not Ready (${notReadyInstances.length})`}>
           <SimpleTable
@@ -247,6 +235,18 @@ export function XRDDetail() {
           emptyMessage="No compositions reference this XRD"
         />
       </SectionBox>
+
+      {/* 7. Schema */}
+      {(() => {
+        const refVersion = spec.versions?.find((v: any) => v.referenceable);
+        const schema = refVersion?.schema?.openAPIV3Schema;
+        if (!schema) return null;
+        return (
+          <SectionBox title={`Schema (${refVersion.name})`}>
+            <SchemaTree schema={schema} />
+          </SectionBox>
+        );
+      })()}
     </Box>
   );
 }
