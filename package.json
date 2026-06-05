@@ -27,6 +27,7 @@
   ],
   "prettier": "@headlamp-k8s/eslint-config/prettier-config",
   "eslintConfig": {
+    "root": true,
     "extends": [
       "@headlamp-k8s",
       "prettier",

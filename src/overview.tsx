@@ -137,6 +137,7 @@ export function CrossplaneOverview() {
   const [compositions] = Composition.useList();
   const [failingXrs, setFailingXrs] = useState<NotReadyEntry[]>([]);
   const [claimsStats, setClaimsStats] = useState<{ total: number; ready: number } | null>(null);
+  const [mrStats, setMrStats] = useState<{ total: number; ready: number } | null>(null);
 
   const xrdsKey = useMemo(
     () => xrds?.map(x => x.metadata.name).sort().join(',') ?? '',
@@ -230,6 +231,65 @@ export function CrossplaneOverview() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 
+  // Discover managed resource CRDs and tally ready/total counts.
+  useEffect(() => {
+    async function fetchMrStats() {
+      try {
+        let crds: any[] = [];
+
+        // Step 1: try label selector (fast path)
+        const labeled: any = await request(
+          '/apis/apiextensions.k8s.io/v1/customresourcedefinitions?labelSelector=crossplane.io%2Fresource%3Dmanaged'
+        );
+        crds = labeled.items ?? [];
+
+        // Step 2: fall back to full CRD list filtered by category
+        if (crds.length === 0) {
+          const all: any = await request('/apis/apiextensions.k8s.io/v1/customresourcedefinitions');
+          crds = (all.items ?? []).filter((crd: any) =>
+            (crd.spec?.names?.categories ?? []).includes('managed')
+          );
+        }
+
+        if (crds.length === 0) {
+          setMrStats({ total: 0, ready: 0 });
+          return;
+        }
+
+        const results = await Promise.all(
+          crds.map(async (crd: any) => {
+            const group = crd.spec.group;
+            const storageVersion =
+              crd.spec.versions?.find((v: any) => v.storage) ?? crd.spec.versions?.[0];
+            const version = storageVersion?.name;
+            const plural = crd.spec.names.plural;
+            if (!group || !version || !plural) return { total: 0, ready: 0 };
+            try {
+              const data: any = await request(`/apis/${group}/${version}/${plural}`);
+              const items: any[] = data.items ?? [];
+              const ready = items.filter(
+                item =>
+                  item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
+              ).length;
+              return { total: items.length, ready };
+            } catch {
+              return { total: 0, ready: 0 };
+            }
+          })
+        );
+
+        setMrStats({
+          total: results.reduce((s, r) => s + r.total, 0),
+          ready: results.reduce((s, r) => s + r.ready, 0),
+        });
+      } catch {
+        setMrStats({ total: 0, ready: 0 });
+      }
+    }
+
+    fetchMrStats();
+  }, []);
+
   const notReadyItems: NotReadyEntry[] = [
     ...collectNotReady(providers, 'Provider', ['Installed', 'Healthy']),
     ...collectNotReady(configurations, 'Configuration', ['Installed', 'Healthy']),
@@ -250,6 +310,7 @@ export function CrossplaneOverview() {
         <StatCard title="XRDs" total={xrds?.length ?? null} ready={countReady(xrds, 'Established')} routeName="crossplane-xrds" />
         <StatCard title="Configurations" total={configurations?.length ?? null} ready={countReady(configurations, 'Healthy')} routeName="crossplane-packages" />
         <StatCard title="Providers" total={providers?.length ?? null} ready={countReady(providers, 'Healthy')} routeName="crossplane-packages" />
+        <StatCard title="Managed Resources" total={mrStats?.total ?? null} ready={mrStats?.ready ?? null} routeName="crossplane-managed-resources" />
       </Box>
 
       <NotReadyPanel items={notReadyItems} />
