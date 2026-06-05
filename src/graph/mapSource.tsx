@@ -17,6 +17,29 @@ function splitApiVersion(apiVersion: string): { group: string; version: string }
     : { group: '', version: apiVersion };
 }
 
+// Cache plural lookups to avoid redundant discovery calls.
+const mrPluralCache = new Map<string, string>();
+
+async function resolveMRPlural(apiVersion: string, kind: string): Promise<string> {
+  const cacheKey = `${apiVersion}/${kind}`;
+  if (mrPluralCache.has(cacheKey)) return mrPluralCache.get(cacheKey)!;
+
+  const { group, version } = splitApiVersion(apiVersion);
+  const discoveryPath = group ? `/apis/${group}/${version}` : `/api/${version}`;
+
+  try {
+    const data = await request(discoveryPath);
+    const resource = (data.resources ?? []).find(
+      (r: any) => r.kind === kind && !r.name.includes('/')
+    );
+    const plural = resource?.name ?? kind.toLowerCase() + 's';
+    mrPluralCache.set(cacheKey, plural);
+    return plural;
+  } catch {
+    return kind.toLowerCase() + 's';
+  }
+}
+
 function CompositionDetailsPanel({ node }: { node: any }) {
   const name: string = node.kubeObject.metadata.name;
   const conditions: any[] = node.kubeObject.jsonData?.status?.conditions ?? [];
@@ -77,12 +100,33 @@ function ClaimDetailsPanel({ node }: { node: any }) {
   );
 }
 
+function MRDetailsPanel({ node }: { node: any }) {
+  const name: string = node.kubeObject.metadata.name;
+  const apiVersion: string = node.kubeObject.constructor.apiVersion ?? '';
+  const plural: string = node.kubeObject.constructor.apiName ?? '';
+  const { group, version } = splitApiVersion(apiVersion);
+  const conditions: any[] = node.kubeObject.jsonData?.status?.conditions ?? [];
+  return (
+    <Box p={2}>
+      <Typography variant="h6" gutterBottom>{name}</Typography>
+      <Typography variant="body2" color="text.secondary" gutterBottom>{node.subtitle}</Typography>
+      <HeadlampLink routeName="crossplane-managed-detail" params={{ group, version, plural, name }}>
+        View full details
+      </HeadlampLink>
+      <Box mt={2}>
+        <ConditionsTable conditions={conditions} />
+      </Box>
+    </Box>
+  );
+}
+
 function useCrossplaneGraphData() {
   const [xrds] = CompositeResourceDefinition.useList();
   const [compositions] = Composition.useList();
 
   const [xrItems, setXrItems] = useState<any[] | null>(null);
   const [claimItems, setClaimItems] = useState<any[] | null>(null);
+  const [mrItems, setMrItems] = useState<any[] | null>(null);
 
   const xrdsKey = useMemo(
     () => xrds?.map((x: any) => x.metadata.name).sort().join(',') ?? '',
@@ -144,6 +188,63 @@ function useCrossplaneGraphData() {
     Promise.all(claimPromises).then(results => setClaimItems((results as any[][]).flat()));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
+
+  // Derive a stable key from xrItems resource refs so the MR effect only re-runs when refs change.
+  const xrRefsKey = useMemo(() => {
+    if (!xrItems) return null;
+    return xrItems
+      .flatMap((xr: any) =>
+        (xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? []).map(
+          (ref: any) => `${ref.apiVersion}/${ref.kind}/${ref.name}`
+        )
+      )
+      .sort()
+      .join(',');
+  }, [xrItems]);
+
+  useEffect(() => {
+    if (xrItems === null) return;
+    if (xrItems.length === 0) {
+      setMrItems([]);
+      return;
+    }
+
+    // Collect all resource refs across all XRs, grouped by apiVersion+kind.
+    const groups = new Map<string, { apiVersion: string; kind: string; names: Set<string> }>();
+    for (const xr of xrItems) {
+      const refs: any[] = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
+      for (const ref of refs) {
+        const key = `${ref.apiVersion}/${ref.kind}`;
+        if (!groups.has(key)) {
+          groups.set(key, { apiVersion: ref.apiVersion, kind: ref.kind, names: new Set() });
+        }
+        groups.get(key)!.names.add(ref.name);
+      }
+    }
+
+    const fetchPromises = [...groups.values()].map(async ({ apiVersion, kind, names }) => {
+      const { group, version } = splitApiVersion(apiVersion);
+      const plural = await resolveMRPlural(apiVersion, kind);
+      const path = group ? `/apis/${group}/${version}/${plural}` : `/api/${version}/${plural}`;
+      try {
+        const data = await request(path);
+        return (data.items ?? [])
+          .filter((r: any) => names.has(r.metadata.name))
+          .map((r: any) => ({
+            ...r,
+            __plural: plural,
+            __group: group,
+            __version: version,
+            __kind: kind,
+          }));
+      } catch {
+        return [];
+      }
+    });
+
+    Promise.all(fetchPromises).then(results => setMrItems((results as any[][]).flat()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [xrRefsKey]);
 
   return useMemo(() => {
     if (!compositions && xrItems === null) return null;
@@ -217,8 +318,59 @@ function useCrossplaneGraphData() {
       }
     }
 
+    // Build a lookup keyed by apiVersion/kind/name to handle MRs with the same name but different types.
+    const mrByRef = new Map<string, any>();
+    for (const mr of mrItems ?? []) {
+      if (mr.metadata?.name) {
+        const key = `${mr.__group}/${mr.__version}/${mr.__kind}/${mr.metadata.name}`;
+        mrByRef.set(key, mr);
+      }
+    }
+
+    // MR nodes
+    for (const mr of mrItems ?? []) {
+      const uid = mr.metadata?.uid;
+      if (!uid) continue;
+
+      nodes.push({
+        id: uid,
+        label: mr.metadata.name,
+        subtitle: `${mr.__kind} · ${mr.__group}/${mr.__version}`,
+        kubeObject: makeKubeObject(
+          mr,
+          mr.__kind,
+          mr.__plural,
+          `${mr.__group}/${mr.__version}`,
+          false
+        ),
+        detailsComponent: MRDetailsPanel,
+        status: nodeStatus(mr.status?.conditions ?? []),
+        weight: 400,
+      });
+    }
+
+    // XR→MR edges
+    for (const xr of xrItems ?? []) {
+      const xrUid = xr.metadata?.uid;
+      if (!xrUid) continue;
+
+      const refs: any[] = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
+      for (const ref of refs) {
+        const { group: refGroup, version: refVersion } = splitApiVersion(ref.apiVersion ?? '');
+        const key = `${refGroup}/${refVersion}/${ref.kind}/${ref.name}`;
+        const mr = mrByRef.get(key);
+        if (mr?.metadata?.uid) {
+          edges.push({
+            id: `xr-mr-${xrUid}-${mr.metadata.uid}`,
+            source: xrUid,
+            target: mr.metadata.uid,
+          });
+        }
+      }
+    }
+
     return { nodes, edges };
-  }, [compositions, xrItems, claimItems]);
+  }, [compositions, xrItems, claimItems, mrItems]);
 }
 
 export function registerCrossplaneMapSource() {
