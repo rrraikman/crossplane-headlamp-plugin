@@ -318,10 +318,13 @@ function useCrossplaneGraphData() {
       }
     }
 
-    // Build a lookup: MR name → MR item (for XR→MR edge resolution)
-    const mrByName = new Map<string, any>();
+    // Build a lookup keyed by apiVersion/kind/name to handle MRs with the same name but different types.
+    const mrByRef = new Map<string, any>();
     for (const mr of mrItems ?? []) {
-      if (mr.metadata?.name) mrByName.set(mr.metadata.name, mr);
+      if (mr.metadata?.name) {
+        const key = `${mr.__group}/${mr.__version}/${mr.__kind}/${mr.metadata.name}`;
+        mrByRef.set(key, mr);
+      }
     }
 
     // MR nodes
@@ -353,7 +356,9 @@ function useCrossplaneGraphData() {
 
       const refs: any[] = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
       for (const ref of refs) {
-        const mr = mrByName.get(ref.name);
+        const { group: refGroup, version: refVersion } = splitApiVersion(ref.apiVersion ?? '');
+        const key = `${refGroup}/${refVersion}/${ref.kind}/${ref.name}`;
+        const mr = mrByRef.get(key);
         if (mr?.metadata?.uid) {
           edges.push({
             id: `xr-mr-${xrUid}-${mr.metadata.uid}`,
