@@ -1,0 +1,4 @@
+{
+  "root": true,
+  "extends": ["@headlamp-k8s", "prettier", "plugin:jsx-a11y/recommended"]
+}
