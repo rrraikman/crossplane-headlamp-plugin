@@ -304,7 +304,7 @@ export function CrossplaneOverview() {
         <CrossplaneInfoButton />
       </Box>
 
-      <Box display="flex" gap={2} px={2} pb={2}>
+      <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={2} px={2} pb={2}>
         <StatCard title="Claims" total={claimsStats?.total ?? null} ready={claimsStats?.ready ?? null} routeName="crossplane-claims" />
         <StatCard title="Compositions" total={compositions?.length ?? null} ready={countReadyWhenReported(compositions, 'Ready')} routeName="crossplane-compositions" />
         <StatCard title="XRDs" total={xrds?.length ?? null} ready={countReady(xrds, 'Established')} routeName="crossplane-xrds" />
