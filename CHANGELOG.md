@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.7.0...crossplane-headlamp-plugin-v1.8.0) (2026-06-05)
+
+
+### Features
+
+* **graph:** add managed resource nodes to Crossplane map view ([#59](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/59)) ([ea80d2b](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/ea80d2bd69eb67fca895588d45b1081e8caf0b39))
+
 ## [1.7.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.6.0...crossplane-headlamp-plugin-v1.7.0) (2026-06-02)
 
 
