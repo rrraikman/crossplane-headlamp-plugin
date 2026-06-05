@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.8.0...crossplane-headlamp-plugin-v1.9.0) (2026-06-05)
+
+
+### Features
+
+* **overview:** add managed resources stat card ([#58](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/58)) ([2004a7a](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/2004a7a01dd18fbae957b165e65e72237902a2cd))
+
 ## [1.8.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.7.0...crossplane-headlamp-plugin-v1.8.0) (2026-06-05)
 
 
