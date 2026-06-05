@@ -342,7 +342,7 @@ function useCrossplaneGraphData() {
         ),
         detailsComponent: MRDetailsPanel,
         status: nodeStatus(mr.status?.conditions ?? []),
-        weight: 2000,
+        weight: 400,
       });
     }
 
