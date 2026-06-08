@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.9.0...crossplane-headlamp-plugin-v1.9.1) (2026-06-08)
+
+
+### Bug Fixes
+
+* consistent Provider/Config ordering; switch release-please to GitHub App ([#63](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/63)) ([648048d](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/648048ddf6bf36b9d2561bd076248ed4158763e7))
+
 ## [1.9.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.8.0...crossplane-headlamp-plugin-v1.9.0) (2026-06-05)
 
 
