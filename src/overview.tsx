@@ -308,8 +308,8 @@ export function CrossplaneOverview() {
         <StatCard title="Claims" total={claimsStats?.total ?? null} ready={claimsStats?.ready ?? null} routeName="crossplane-claims" />
         <StatCard title="Compositions" total={compositions?.length ?? null} ready={countReadyWhenReported(compositions, 'Ready')} routeName="crossplane-compositions" />
         <StatCard title="XRDs" total={xrds?.length ?? null} ready={countReady(xrds, 'Established')} routeName="crossplane-xrds" />
-        <StatCard title="Configurations" total={configurations?.length ?? null} ready={countReady(configurations, 'Healthy')} routeName="crossplane-packages" />
         <StatCard title="Providers" total={providers?.length ?? null} ready={countReady(providers, 'Healthy')} routeName="crossplane-packages" />
+        <StatCard title="Configurations" total={configurations?.length ?? null} ready={countReady(configurations, 'Healthy')} routeName="crossplane-packages" />
         <StatCard title="Managed Resources" total={mrStats?.total ?? null} ready={mrStats?.ready ?? null} routeName="crossplane-managed-resources" />
       </Box>
 
