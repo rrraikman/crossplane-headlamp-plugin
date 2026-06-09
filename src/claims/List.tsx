@@ -110,15 +110,27 @@ export function ClaimList() {
             label: 'Message',
             getter: (r: ClaimRow) =>
               r.message ? (
-                <Tooltip title={r.message} placement="top-start">
-                  <Typography
-                    variant="body2"
-                    noWrap
-                    sx={{ maxWidth: 480, cursor: 'default', fontFamily: 'monospace' }}
-                  >
-                    {r.message}
-                  </Typography>
-                </Tooltip>
+                <HeadlampLink
+                  routeName="crossplane-claim-detail"
+                  params={{
+                    group: r.group,
+                    version: r.version,
+                    plural: r.plural,
+                    namespace: r.namespace,
+                    name: r.name,
+                  }}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Tooltip title={r.message} placement="top-start">
+                    <Typography
+                      variant="body2"
+                      noWrap
+                      sx={{ maxWidth: 480, cursor: 'pointer', fontFamily: 'monospace', color: 'error.main' }}
+                    >
+                      {r.message}
+                    </Typography>
+                  </Tooltip>
+                </HeadlampLink>
               ) : (
                 '—'
               ),
