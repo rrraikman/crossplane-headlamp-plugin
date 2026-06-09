@@ -45,17 +45,25 @@ function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
           },
           {
             label: 'Message',
-            getter: (r: NotReadyEntry) => (
-              <Tooltip title={r.message} placement="top-start">
-                <Typography
-                  variant="body2"
-                  noWrap
-                  sx={{ maxWidth: 500, cursor: 'default', fontFamily: 'monospace' }}
-                >
-                  {r.message}
-                </Typography>
-              </Tooltip>
-            ),
+            getter: (r: NotReadyEntry) => {
+              const route = resolveDetailRoute(r);
+              const text = (
+                <Tooltip title={r.message} placement="top-start">
+                  <Typography
+                    variant="body2"
+                    noWrap
+                    sx={{ maxWidth: 500, cursor: route ? 'pointer' : 'default', fontFamily: 'monospace', ...(route ? { color: 'error.main' } : {}) }}
+                  >
+                    {r.message}
+                  </Typography>
+                </Tooltip>
+              );
+              return route ? (
+                <HeadlampLink routeName={route.routeName} params={route.params} style={{ textDecoration: 'none' }}>
+                  {text}
+                </HeadlampLink>
+              ) : text;
+            },
           },
         ]}
         data={items}

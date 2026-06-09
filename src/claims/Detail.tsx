@@ -89,16 +89,33 @@ export function ClaimDetail() {
     return null;
   })();
 
+  // Link to the specific failing MR; fall back to the XR when no MR is identified yet
+  // (e.g. compose errors where no MR has been created).
+  const errorRoute: { routeName: string; params: Record<string, string> } | null = (() => {
+    if (!errorMessage) return null;
+    if (failingResource) {
+      return { routeName: 'crossplane-managed-detail', params: failingResource.routeParams };
+    }
+    if (xrRef?.apiVersion && xrRef?.name && xrPlural) {
+      const [xrGroup, xrVersion] = xrRef.apiVersion.split('/');
+      return {
+        routeName: 'crossplane-composite-detail',
+        params: { group: xrGroup, version: xrVersion, plural: xrPlural, name: xrRef.name },
+      };
+    }
+    return null;
+  })();
+
   return (
     <Box pb={6}>
       <BackLink />
 
       {errorMessage && (
         <Box px={2} pt={2}>
-          {failingResource ? (
+          {errorRoute ? (
             <HeadlampLink
-              routeName="crossplane-managed-detail"
-              params={failingResource.routeParams}
+              routeName={errorRoute.routeName}
+              params={errorRoute.params}
               style={{ textDecoration: 'none', display: 'block' }}
             >
               <Alert

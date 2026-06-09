@@ -136,18 +136,28 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
             label: 'Message',
             getter: (r: any) => {
               const msg = debugMessage(r.status?.conditions ?? []);
-              return msg ? (
-                <Tooltip title={msg} placement="top-start">
-                  <Typography
-                    variant="body2"
-                    noWrap
-                    sx={{ maxWidth: 480, cursor: 'default', fontFamily: 'monospace' }}
-                  >
-                    {msg}
-                  </Typography>
-                </Tooltip>
-              ) : (
-                '—'
+              if (!msg) return '—';
+              const apiVersion: string = r.apiVersion ?? '';
+              const slashIdx = apiVersion.lastIndexOf('/');
+              const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
+              const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion;
+              const plural = r.__plural ?? r.kind.toLowerCase() + 's';
+              return (
+                <HeadlampLink
+                  routeName="crossplane-managed-detail"
+                  params={{ group, version, plural, name: r.metadata.name }}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Tooltip title={msg} placement="top-start">
+                    <Typography
+                      variant="body2"
+                      noWrap
+                      sx={{ maxWidth: 480, cursor: 'pointer', fontFamily: 'monospace', color: 'error.main' }}
+                    >
+                      {msg}
+                    </Typography>
+                  </Tooltip>
+                </HeadlampLink>
               );
             },
           },
