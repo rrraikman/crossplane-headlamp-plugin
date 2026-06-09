@@ -7,6 +7,7 @@ export interface ClaimRow {
   plural: string;
   ready: string;
   synced: string;
+  message: string | null;
   creationTimestamp: string;
 }
 

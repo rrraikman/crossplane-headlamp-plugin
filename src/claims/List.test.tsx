@@ -25,8 +25,11 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
   Link: ({ children }: any) => <span>{children}</span>,
 }));
 
+import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { CompositeResourceDefinition } from '../resources';
 import { ClaimList } from './List';
+
+const mockRequest = vi.mocked(request);
 
 function makeXRD(name: string, claimKind = 'Database', claimPlural = 'databases') {
   return {
@@ -63,6 +66,53 @@ describe('ClaimList', () => {
     render(<ClaimList />);
     await waitFor(() => {
       expect(screen.getAllByText(/Database/).length).toBeGreaterThan(0);
+    });
+  });
+
+  test('shows error message in Message column for a failing claim', async () => {
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+      [makeXRD('xdatabases.example.io')],
+      null,
+    ]);
+    mockRequest.mockResolvedValueOnce({
+      items: [
+        {
+          metadata: { name: 'my-db', namespace: 'default', creationTimestamp: '2024-01-01T00:00:00Z' },
+          status: {
+            conditions: [
+              { type: 'Ready', status: 'False', reason: 'Creating', message: 'Error: cannot provision database' },
+              { type: 'Synced', status: 'True', reason: 'ReconcileSuccess', message: '' },
+            ],
+          },
+        },
+      ],
+    });
+    render(<ClaimList />);
+    await waitFor(() => {
+      expect(screen.getByText('Error: cannot provision database')).toBeTruthy();
+    });
+  });
+
+  test('shows dash in Message column when claim has no error message', async () => {
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+      [makeXRD('xdatabases.example.io')],
+      null,
+    ]);
+    mockRequest.mockResolvedValueOnce({
+      items: [
+        {
+          metadata: { name: 'my-db', namespace: 'default', creationTimestamp: '2024-01-01T00:00:00Z' },
+          status: {
+            conditions: [
+              { type: 'Ready', status: 'True', reason: 'Available', message: '' },
+            ],
+          },
+        },
+      ],
+    });
+    render(<ClaimList />);
+    await waitFor(() => {
+      expect(screen.getByText('—')).toBeTruthy();
     });
   });
 });

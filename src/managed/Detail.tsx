@@ -64,9 +64,25 @@ export function ManagedResourceDetail() {
   const synced = rawConditionStatus(conditions, 'Synced');
   const overallOk = ready === 'True' && synced === 'True';
 
+  const errorMessage = (() => {
+    if (overallOk) return null;
+    const failing = conditions.find(
+      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
+    );
+    return failing?.message ?? null;
+  })();
+
   return (
     <Box pb={6}>
       <BackLink />
+
+      {errorMessage && (
+        <Box px={2} pt={2}>
+          <Alert severity="error" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {errorMessage}
+          </Alert>
+        </Box>
+      )}
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"

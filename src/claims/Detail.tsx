@@ -13,7 +13,7 @@ import { EventsTable } from '../components/EventsTable';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
-import { fetchXRResourceRefs, resolveXRPlural } from './Detail.utils';
+import { FailingResource, fetchFailingManagedResource, fetchXRData, resolveXRPlural } from './Detail.utils';
 
 export function ClaimDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -31,14 +31,28 @@ export function ClaimDetail() {
   );
 
   const [xrResourceRefs, setXrResourceRefs] = useState<any[] | null>(null);
+  const [xrConditions, setXrConditions] = useState<any[] | null>(null);
   const [xrPlural, setXrPlural] = useState<string | null>(null);
+  const [failingResource, setFailingResource] = useState<FailingResource | null>(null);
 
   useEffect(() => {
     if (!claim) return;
     const resourceRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
-    fetchXRResourceRefs(resourceRef).then(refs => setXrResourceRefs(refs ?? []));
+    fetchXRData(resourceRef).then(data => {
+      setXrResourceRefs(data?.resourceRefs ?? []);
+      setXrConditions(data?.conditions ?? []);
+    });
     resolveXRPlural(resourceRef).then(setXrPlural);
   }, [claim]);
+
+  useEffect(() => {
+    if (!xrResourceRefs || !xrConditions) return;
+    const xrFailing = xrConditions.some(
+      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
+    );
+    if (!xrFailing) return;
+    fetchFailingManagedResource(xrResourceRefs).then(setFailingResource);
+  }, [xrResourceRefs, xrConditions]);
 
   if (!claims && !claimError) return <Loader title="Loading..." />;
 
@@ -62,9 +76,62 @@ export function ClaimDetail() {
   const overallOk = ready === 'True' && synced === 'True';
   const xrRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
 
+  // Prefer the XR's failing condition message — it's more specific (e.g. compose errors,
+  // MR sync errors). Fall back to the claim's own conditions.
+  const errorMessage = (() => {
+    if (overallOk) return null;
+    for (const conds of [xrConditions ?? [], conditions]) {
+      const failing = conds.find(
+        (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
+      );
+      if (failing?.message) return failing.message;
+    }
+    return null;
+  })();
+
+  // Link to the specific failing MR; fall back to the XR when no MR is identified yet
+  // (e.g. compose errors where no MR has been created).
+  const errorRoute: { routeName: string; params: Record<string, string> } | null = (() => {
+    if (!errorMessage) return null;
+    if (failingResource) {
+      return { routeName: 'crossplane-managed-detail', params: failingResource.routeParams };
+    }
+    if (xrRef?.apiVersion && xrRef?.name && xrPlural) {
+      const [xrGroup, xrVersion] = xrRef.apiVersion.split('/');
+      return {
+        routeName: 'crossplane-composite-detail',
+        params: { group: xrGroup, version: xrVersion, plural: xrPlural, name: xrRef.name },
+      };
+    }
+    return null;
+  })();
+
   return (
     <Box pb={6}>
       <BackLink />
+
+      {errorMessage && (
+        <Box px={2} pt={2}>
+          {errorRoute ? (
+            <HeadlampLink
+              routeName={errorRoute.routeName}
+              params={errorRoute.params}
+              style={{ textDecoration: 'none', display: 'block' }}
+            >
+              <Alert
+                severity="error"
+                sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: 'pointer' }}
+              >
+                {errorMessage}
+              </Alert>
+            </HeadlampLink>
+          ) : (
+            <Alert severity="error" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {errorMessage}
+            </Alert>
+          )}
+        </Box>
+      )}
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"

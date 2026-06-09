@@ -144,6 +144,36 @@ Check out production-ready plugins in `node_modules/@kinvolk/headlamp-plugin/off
 6. **Test:** Run `npm run test` to run tests
 7. **Build:** Run `npm run build` to create production build
 
+## Pre-PR Checklist
+
+Before opening any pull request, run the following and fix all failures:
+
+```sh
+npm run lint-fix   # auto-fix import order and style issues
+npm run tsc        # must produce zero errors
+npm run test -- --coverage   # all tests pass AND coverage thresholds are met
+```
+
+Coverage thresholds (defined in `vitest.config.ts`) are enforced by CI:
+
+| Metric | Threshold |
+|---|---|
+| Statements | 75% |
+| Branches | 67% |
+| Functions | 72% |
+| Lines | 74% |
+
+**Every new feature must ship with tests that keep all four metrics above their thresholds.** If adding code causes a threshold to drop below its limit, add tests before opening the PR — do not open the PR and fix coverage after the fact.
+
+### How to add coverage for new code
+
+- **Pure logic / async utility functions** (`*.utils.ts`, `Detail.utils.ts`, etc.): test directly with Vitest. Mock `@kinvolk/headlamp-plugin/lib/ApiProxy`'s `request` with `vi.fn()` and set return values per test.
+- **React components that don't use `KubeObject`**: render with `@testing-library/react`. Mock `@kinvolk/headlamp-plugin/lib/CommonComponents` and `react-router-dom`. Use `waitFor` for anything triggered by async `useEffect`.
+- **New branches inside existing components** (e.g. a new conditional banner): add a test case to the existing `*.test.tsx` that sets up the mock state that triggers the branch, then asserts the new UI element appears (or doesn't).
+- **Components that import `../resources`**: mock the entire `../resources` module and the `KubeObject` mock from `src/__mocks__/headlamp-k8s-cluster.ts`. Mock any new utility functions (`vi.mock('./Detail.utils', () => ({ myFn: vi.fn() }))`) so async effects resolve synchronously in tests.
+
+If new code is in a file with low baseline coverage, adding even 2–3 targeted tests for the new branches is usually enough to stay above thresholds.
+
 ## Unit Testing
 
 Tests use **Vitest** in a jsdom environment, wired up via the headlamp-plugin config. Run them with `npm test`.
