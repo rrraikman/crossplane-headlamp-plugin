@@ -172,12 +172,39 @@ export function CrossplaneOverview() {
                 const failing = conds.find(
                   (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
                 );
-                return {
-                  kind,
-                  name: item.metadata.name,
+                const entry = {
                   conditionType: failing?.type ?? 'Ready',
                   reason: failing?.reason ?? 'Unknown',
                   message: failing?.message || 'No message reported',
+                };
+
+                // If this XR was created from a claim, surface the claim instead.
+                // Claims are the user-facing concept; XRs are an implementation detail.
+                const claimRef =
+                  item.spec?.crossplane?.claimRef ?? item.spec?.claimRef;
+                if (claimRef?.name) {
+                  const [claimGroup, claimVersion] = (claimRef.apiVersion ?? '').split('/');
+                  return {
+                    ...entry,
+                    kind: claimRef.kind ?? kind,
+                    name: claimRef.name,
+                    detailRoute: {
+                      routeName: 'crossplane-claim-detail',
+                      params: {
+                        group: claimGroup ?? group,
+                        version: claimVersion ?? version,
+                        plural: spec.claimNames?.plural ?? claimRef.kind?.toLowerCase() + 's',
+                        namespace: claimRef.namespace ?? 'default',
+                        name: claimRef.name,
+                      },
+                    },
+                  };
+                }
+
+                return {
+                  ...entry,
+                  kind,
+                  name: item.metadata.name,
                   detailRoute: {
                     routeName: 'crossplane-composite-detail',
                     params: { group, version, plural, name: item.metadata.name },

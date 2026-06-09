@@ -16,7 +16,12 @@ export async function resolveXRPlural(xrRef: any): Promise<string> {
   }
 }
 
-export async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | null> {
+export interface XRData {
+  resourceRefs: any[];
+  conditions: any[];
+}
+
+export async function fetchXRData(resourceRef: any): Promise<XRData | null> {
   if (!resourceRef?.apiVersion || !resourceRef?.kind || !resourceRef?.name) return null;
 
   const slashIdx = resourceRef.apiVersion.lastIndexOf('/');
@@ -32,8 +37,16 @@ export async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | nul
     const list = await request(`/apis/${group}/${version}/${plural}`);
     const xr = (list.items ?? []).find((r: any) => r.metadata.name === resourceRef.name);
     if (!xr) return null;
-    return xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
+    return {
+      resourceRefs: xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [],
+      conditions: xr.status?.conditions ?? [],
+    };
   } catch {
     return null;
   }
+}
+
+export async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | null> {
+  const data = await fetchXRData(resourceRef);
+  return data?.resourceRefs ?? null;
 }

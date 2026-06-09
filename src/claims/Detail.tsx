@@ -13,7 +13,7 @@ import { EventsTable } from '../components/EventsTable';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
-import { fetchXRResourceRefs, resolveXRPlural } from './Detail.utils';
+import { fetchXRData, resolveXRPlural } from './Detail.utils';
 
 export function ClaimDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -31,12 +31,16 @@ export function ClaimDetail() {
   );
 
   const [xrResourceRefs, setXrResourceRefs] = useState<any[] | null>(null);
+  const [xrConditions, setXrConditions] = useState<any[] | null>(null);
   const [xrPlural, setXrPlural] = useState<string | null>(null);
 
   useEffect(() => {
     if (!claim) return;
     const resourceRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
-    fetchXRResourceRefs(resourceRef).then(refs => setXrResourceRefs(refs ?? []));
+    fetchXRData(resourceRef).then(data => {
+      setXrResourceRefs(data?.resourceRefs ?? []);
+      setXrConditions(data?.conditions ?? []);
+    });
     resolveXRPlural(resourceRef).then(setXrPlural);
   }, [claim]);
 
@@ -62,9 +66,30 @@ export function ClaimDetail() {
   const overallOk = ready === 'True' && synced === 'True';
   const xrRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
 
+  // Prefer the XR's failing condition message — it's more specific (e.g. compose errors,
+  // MR sync errors). Fall back to the claim's own conditions.
+  const errorMessage = (() => {
+    if (overallOk) return null;
+    for (const conds of [xrConditions ?? [], conditions]) {
+      const failing = conds.find(
+        (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
+      );
+      if (failing?.message) return failing.message;
+    }
+    return null;
+  })();
+
   return (
     <Box pb={6}>
       <BackLink />
+
+      {errorMessage && (
+        <Box px={2} pt={2}>
+          <Alert severity="error" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {errorMessage}
+          </Alert>
+        </Box>
+      )}
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"

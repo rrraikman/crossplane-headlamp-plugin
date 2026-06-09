@@ -5,7 +5,7 @@ import {
   SectionBox,
   SimpleTable,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Typography } from '@mui/material';
+import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CompositeResourceDefinition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
@@ -43,17 +43,24 @@ export function ClaimList() {
 
         return request(`/apis/${group}/${version}/${plural}`)
           .then((data: any) =>
-            (data.items ?? []).map((item: any): ClaimRow => ({
-              name: item.metadata.name,
-              namespace: item.metadata.namespace ?? '—',
-              kind,
-              group,
-              version,
-              plural,
-              ready: rawConditionStatus(item.status?.conditions ?? [], 'Ready'),
-              synced: rawConditionStatus(item.status?.conditions ?? [], 'Synced'),
-              creationTimestamp: item.metadata.creationTimestamp,
-            }))
+            (data.items ?? []).map((item: any): ClaimRow => {
+              const conditions: any[] = item.status?.conditions ?? [];
+              const failing = conditions.find(
+                (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
+              );
+              return {
+                name: item.metadata.name,
+                namespace: item.metadata.namespace ?? '—',
+                kind,
+                group,
+                version,
+                plural,
+                ready: rawConditionStatus(conditions, 'Ready'),
+                synced: rawConditionStatus(conditions, 'Synced'),
+                message: failing?.message ?? null,
+                creationTimestamp: item.metadata.creationTimestamp,
+              };
+            })
           )
           .catch(() => [] as ClaimRow[]);
       })
@@ -99,6 +106,23 @@ export function ClaimList() {
           { label: 'Kind', getter: (r: ClaimRow) => r.kind },
           { label: 'Ready', getter: (r: ClaimRow) => <StatusChip status={r.ready} /> },
           { label: 'Synced', getter: (r: ClaimRow) => <StatusChip status={r.synced} /> },
+          {
+            label: 'Message',
+            getter: (r: ClaimRow) =>
+              r.message ? (
+                <Tooltip title={r.message} placement="top-start">
+                  <Typography
+                    variant="body2"
+                    noWrap
+                    sx={{ maxWidth: 480, cursor: 'default', fontFamily: 'monospace' }}
+                  >
+                    {r.message}
+                  </Typography>
+                </Tooltip>
+              ) : (
+                '—'
+              ),
+          },
           { label: 'Age', getter: (r: ClaimRow) => age(r.creationTimestamp) },
         ]}
         data={claims}
