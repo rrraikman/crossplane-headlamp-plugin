@@ -13,7 +13,7 @@ import { EventsTable } from '../components/EventsTable';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
-import { fetchXRData, resolveXRPlural } from './Detail.utils';
+import { FailingResource, fetchFailingManagedResource, fetchXRData, resolveXRPlural } from './Detail.utils';
 
 export function ClaimDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -33,6 +33,7 @@ export function ClaimDetail() {
   const [xrResourceRefs, setXrResourceRefs] = useState<any[] | null>(null);
   const [xrConditions, setXrConditions] = useState<any[] | null>(null);
   const [xrPlural, setXrPlural] = useState<string | null>(null);
+  const [failingResource, setFailingResource] = useState<FailingResource | null>(null);
 
   useEffect(() => {
     if (!claim) return;
@@ -43,6 +44,15 @@ export function ClaimDetail() {
     });
     resolveXRPlural(resourceRef).then(setXrPlural);
   }, [claim]);
+
+  useEffect(() => {
+    if (!xrResourceRefs || !xrConditions) return;
+    const xrFailing = xrConditions.some(
+      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
+    );
+    if (!xrFailing) return;
+    fetchFailingManagedResource(xrResourceRefs).then(setFailingResource);
+  }, [xrResourceRefs, xrConditions]);
 
   if (!claims && !claimError) return <Loader title="Loading..." />;
 
@@ -85,9 +95,24 @@ export function ClaimDetail() {
 
       {errorMessage && (
         <Box px={2} pt={2}>
-          <Alert severity="error" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {errorMessage}
-          </Alert>
+          {failingResource ? (
+            <HeadlampLink
+              routeName="crossplane-managed-detail"
+              params={failingResource.routeParams}
+              style={{ textDecoration: 'none', display: 'block' }}
+            >
+              <Alert
+                severity="error"
+                sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: 'pointer' }}
+              >
+                {errorMessage}
+              </Alert>
+            </HeadlampLink>
+          ) : (
+            <Alert severity="error" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {errorMessage}
+            </Alert>
+          )}
         </Box>
       )}
 

@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from 'vitest';
 vi.mock('./Detail.utils', () => ({
   fetchXRData: vi.fn().mockResolvedValue({ resourceRefs: [], conditions: [] }),
   fetchXRResourceRefs: vi.fn().mockResolvedValue([]),
+  fetchFailingManagedResource: vi.fn().mockResolvedValue(null),
   resolveXRPlural: vi.fn().mockResolvedValue('xdatabases'),
 }));
 
