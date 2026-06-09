@@ -6,8 +6,9 @@ import {
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { Alert, Box, Chip } from '@mui/material';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { FailingResource, fetchFailingManagedResource } from '../claims/Detail.utils';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { useDynamicKubeList } from '../hooks';
@@ -27,6 +28,19 @@ export function CompositeDetail() {
     () => xrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
     [xrs, name]
   );
+
+  const [failingResource, setFailingResource] = useState<FailingResource | null>(null);
+
+  useEffect(() => {
+    if (!xr) return;
+    const conditions: any[] = xr.status?.conditions ?? [];
+    const failing = conditions.some(
+      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
+    );
+    if (!failing) return;
+    const resourceRefs = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
+    fetchFailingManagedResource(resourceRefs).then(setFailingResource);
+  }, [xr]);
 
   if (!xrs && !error) return <Loader title="Loading..." />;
 
@@ -49,9 +63,44 @@ export function CompositeDetail() {
   const synced = rawConditionStatus(conditions, 'Synced');
   const overallOk = ready === 'True' && synced === 'True';
 
+  const errorMessage = (() => {
+    if (overallOk) return null;
+    const failing = conditions.find(
+      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
+    );
+    return failing?.message ?? null;
+  })();
+
+  const errorRoute: { routeName: string; params: Record<string, string> } | null = failingResource
+    ? { routeName: 'crossplane-managed-detail', params: failingResource.routeParams }
+    : null;
+
   return (
     <Box pb={6}>
       <BackLink />
+
+      {errorMessage && (
+        <Box px={2} pt={2}>
+          {errorRoute ? (
+            <HeadlampLink
+              routeName={errorRoute.routeName}
+              params={errorRoute.params}
+              style={{ textDecoration: 'none', display: 'block' }}
+            >
+              <Alert
+                severity="error"
+                sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: 'pointer' }}
+              >
+                {errorMessage}
+              </Alert>
+            </HeadlampLink>
+          ) : (
+            <Alert severity="error" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {errorMessage}
+            </Alert>
+          )}
+        </Box>
+      )}
 
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip size="small"

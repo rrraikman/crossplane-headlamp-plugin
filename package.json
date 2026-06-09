@@ -1,6 +1,6 @@
 {
   "name": "crossplane-headlamp-plugin",
-  "version": "1.3.0",
+  "version": "1.9.1",
   "description": "Your Headlamp plugin",
   "scripts": {
     "start": "headlamp-plugin start",
@@ -27,6 +27,7 @@
   ],
   "prettier": "@headlamp-k8s/eslint-config/prettier-config",
   "eslintConfig": {
+    "root": true,
     "extends": [
       "@headlamp-k8s",
       "prettier",
@@ -42,6 +43,6 @@
   "devDependencies": {
     "@kinvolk/headlamp-plugin": "^0.14.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.5"
+    "lint-staged": "^17.0.7"
   }
 }

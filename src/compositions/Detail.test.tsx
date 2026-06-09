@@ -6,6 +6,10 @@ vi.mock('../resources', () => ({
   Composition: { useGet: vi.fn().mockReturnValue([null, null]) },
 }));
 
+vi.mock('@iconify/react', () => ({
+  Icon: ({ icon }: { icon: string }) => <span data-testid={`icon-${icon}`} />,
+}));
+
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
   BackLink: () => null,
   Link: ({ children }: any) => <span>{children}</span>,
@@ -30,6 +34,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null }));
+vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 
 import { Composition } from '../resources';
 import { CompositionDetail } from './Detail';
@@ -76,14 +81,29 @@ describe('CompositionDetail', () => {
     expect(screen.getByText('function-patch-and-transform')).toBeTruthy();
   });
 
-  test('renders — for pipeline step with no functionRef', () => {
+  test('renders step name even when no functionRef is set', () => {
     const comp = makeComposition({
       mode: 'Pipeline',
       pipeline: [{ step: 'my-step' }],
     });
     vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
     render(<CompositionDetail />);
-    expect(screen.getByText('—')).toBeTruthy();
+    expect(screen.getByText('my-step')).toBeTruthy();
+    expect(screen.queryByText('—')).toBeNull();
+  });
+
+  test('renders arrow between pipeline steps', () => {
+    const comp = makeComposition({
+      mode: 'Pipeline',
+      pipeline: [
+        { step: 'step-one', functionRef: { name: 'fn-one' } },
+        { step: 'step-two', functionRef: { name: 'fn-two' } },
+      ],
+    });
+    vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
+    render(<CompositionDetail />);
+    const arrows = screen.getAllByTestId('icon-mdi:arrow-down');
+    expect(arrows).toHaveLength(1);
   });
 
   test('renders resources table when mode is Resources', () => {

@@ -1,5 +1,54 @@
 # Changelog
 
+## [1.9.1](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.9.0...crossplane-headlamp-plugin-v1.9.1) (2026-06-08)
+
+
+### Bug Fixes
+
+* consistent Provider/Config ordering; switch release-please to GitHub App ([#63](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/63)) ([648048d](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/648048ddf6bf36b9d2561bd076248ed4158763e7))
+
+## [1.9.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.8.0...crossplane-headlamp-plugin-v1.9.0) (2026-06-05)
+
+
+### Features
+
+* **overview:** add managed resources stat card ([#58](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/58)) ([2004a7a](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/2004a7a01dd18fbae957b165e65e72237902a2cd))
+
+## [1.8.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.7.0...crossplane-headlamp-plugin-v1.8.0) (2026-06-05)
+
+
+### Features
+
+* **graph:** add managed resource nodes to Crossplane map view ([#59](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/59)) ([ea80d2b](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/ea80d2bd69eb67fca895588d45b1081e8caf0b39))
+
+## [1.7.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.6.0...crossplane-headlamp-plugin-v1.7.0) (2026-06-02)
+
+
+### Features
+
+* **events:** add events section to remaining detail pages ([#54](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/54)) ([1afd7aa](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/1afd7aa309a30a7882621b1a21e06d410fe501bc))
+
+## [1.6.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.5.0...crossplane-headlamp-plugin-v1.6.0) (2026-06-02)
+
+
+### Features
+
+* **xrds:** add collapsible OpenAPI schema browser ([#53](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/53)) ([291e06e](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/291e06efdc5c04f81f3b597c63aa384d4c463b11))
+
+## [1.5.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.4.0...crossplane-headlamp-plugin-v1.5.0) (2026-06-02)
+
+
+### Features
+
+* **compositions:** replace pipeline table with visual flow diagram ([#52](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/52)) ([1a05378](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/1a053789f7b7aed4a918ce2172886da759ea37cb))
+
+## [1.4.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.3.0...crossplane-headlamp-plugin-v1.4.0) (2026-06-02)
+
+
+### Features
+
+* add Crossplane resource relationship graph to Headlamp map view ([#48](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/48)) ([18c5c8b](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/18c5c8b0ea3539071d0a54c94f4314c382892512))
+
 ## [1.3.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.2.0...crossplane-headlamp-plugin-v1.3.0) (2026-06-01)
 
 
