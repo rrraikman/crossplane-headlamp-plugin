@@ -31,8 +31,11 @@ vi.mock('./components/CrossplaneInfoDialog', () => ({
   CrossplaneInfoButton: () => null,
 }));
 
+import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { CrossplaneOverview } from './overview';
-import { CompositeResourceDefinition, Composition,Configuration, Provider } from './resources';
+import { CompositeResourceDefinition, Composition, Configuration, Provider } from './resources';
+
+const mockRequest = vi.mocked(request);
 
 function makePackageResource(name: string, condType: string, condStatus: string) {
   const conditions: any[] = [
@@ -48,13 +51,14 @@ function makePackageResource(name: string, condType: string, condStatus: string)
   };
 }
 
-function makeXRD(name: string, condStatus = 'True') {
+function makeXRD(name: string, condStatus = 'True', withClaimNames = false) {
   return {
     metadata: { name },
     jsonData: {
       spec: {
         group: 'example.io',
         names: { kind: 'XDatabase', plural: 'xdatabases' },
+        ...(withClaimNames ? { claimNames: { kind: 'Database', plural: 'databases' } } : {}),
         versions: [{ name: 'v1alpha1', served: true, referenceable: true }],
       },
       metadata: { name },
@@ -110,6 +114,62 @@ describe('CrossplaneOverview', () => {
     render(<CrossplaneOverview />);
     await waitFor(() => {
       expect(screen.getByText('my-provider')).toBeTruthy();
+    });
+  });
+
+  test('surfaces a failing XR as the XR name when it has no claimRef', async () => {
+    vi.mocked(Provider.useList).mockReturnValue([[], null]);
+    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+      [makeXRD('xdatabases.example.io')],
+      null,
+    ]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockRequest.mockResolvedValue({
+      items: [
+        {
+          metadata: { name: 'my-xdb', creationTimestamp: '2024-01-01T00:00:00Z' },
+          spec: {},
+          status: {
+            conditions: [
+              { type: 'Ready', status: 'False', reason: 'Creating', message: 'compose failed' },
+            ],
+          },
+        },
+      ],
+    });
+    render(<CrossplaneOverview />);
+    await waitFor(() => {
+      expect(screen.getByText('my-xdb')).toBeTruthy();
+    });
+  });
+
+  test('surfaces a failing XR as the claim name when it has a claimRef', async () => {
+    vi.mocked(Provider.useList).mockReturnValue([[], null]);
+    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+      [makeXRD('xdatabases.example.io', 'True', true)],
+      null,
+    ]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockRequest.mockResolvedValue({
+      items: [
+        {
+          metadata: { name: 'my-xdb', creationTimestamp: '2024-01-01T00:00:00Z' },
+          spec: {
+            claimRef: { apiVersion: 'example.io/v1alpha1', kind: 'Database', name: 'my-claim', namespace: 'default' },
+          },
+          status: {
+            conditions: [
+              { type: 'Ready', status: 'False', reason: 'Creating', message: 'compose failed' },
+            ],
+          },
+        },
+      ],
+    });
+    render(<CrossplaneOverview />);
+    await waitFor(() => {
+      expect(screen.getByText('my-claim')).toBeTruthy();
     });
   });
 });
