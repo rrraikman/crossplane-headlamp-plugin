@@ -35,12 +35,17 @@ vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null })
 vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 vi.mock('../managed/ManagedResources', () => ({ ManagedResources: () => null }));
 
+vi.mock('@iconify/react', () => ({
+  Icon: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
+}));
+
 import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
 import { CompositeDetail } from './Detail';
 
 function makeXR(ready = 'True', synced = 'True') {
   return {
     metadata: { name: 'my-xdb', creationTimestamp: '2024-01-01T00:00:00Z' },
+    patch: vi.fn(),
     jsonData: {
       kind: 'XDatabase',
       apiVersion: 'example.io/v1alpha1',
@@ -86,5 +91,11 @@ describe('CompositeDetail', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeXR('False', 'False')], null]);
     render(<CompositeDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
+  });
+
+  test('renders a reconcile button', () => {
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    render(<CompositeDetail />);
+    expect(screen.getByTitle('Trigger reconcile')).toBeTruthy();
   });
 });

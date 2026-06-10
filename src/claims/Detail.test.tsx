@@ -35,6 +35,10 @@ vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null })
 vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 vi.mock('../managed/ManagedResources', () => ({ ManagedResources: () => null }));
 
+vi.mock('@iconify/react', () => ({
+  Icon: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
+}));
+
 import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
 import { ClaimDetail } from './Detail';
 import { fetchFailingManagedResource, fetchXRData } from './Detail.utils';
@@ -42,6 +46,7 @@ import { fetchFailingManagedResource, fetchXRData } from './Detail.utils';
 function makeClaim(ready = 'True', synced = 'True', message = '') {
   return {
     metadata: { name: 'my-db', namespace: 'default', creationTimestamp: '2024-01-01T00:00:00Z' },
+    patch: vi.fn(),
     jsonData: {
       kind: 'Database',
       apiVersion: 'example.io/v1alpha1',
@@ -90,6 +95,12 @@ describe('ClaimDetail', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim('False', 'False')], null]);
     render(<ClaimDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
+  });
+
+  test('renders a reconcile button', () => {
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
+    render(<ClaimDetail />);
+    expect(screen.getByTitle('Trigger reconcile')).toBeTruthy();
   });
 
   test('shows error banner with XR condition message when XR is failing', async () => {

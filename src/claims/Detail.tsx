@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { ReconcileButton } from '../components/ReconcileButton';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
@@ -25,10 +26,11 @@ export function ClaimDetail() {
   }>();
 
   const [claims, claimError] = useDynamicKubeList(group, version, plural, true, { namespace });
-  const claim = useMemo(
-    () => claims?.find(r => r.metadata.name === name)?.jsonData ?? null,
+  const claimResource = useMemo(
+    () => claims?.find(r => r.metadata.name === name) ?? null,
     [claims, name]
   );
+  const claim = claimResource?.jsonData ?? null;
 
   const [xrResourceRefs, setXrResourceRefs] = useState<any[] | null>(null);
   const [xrConditions, setXrConditions] = useState<any[] | null>(null);
@@ -138,6 +140,7 @@ export function ClaimDetail() {
           label={readySyncedStatusLabel(ready, synced)}
           color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
         />,
+        <ReconcileButton resource={claimResource!} />,
       ] }}>
         <NameValueTable
           rows={[

@@ -30,12 +30,17 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null }));
 vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 
+vi.mock('@iconify/react', () => ({
+  Icon: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
+}));
+
 import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
 import { ManagedResourceDetail } from './Detail';
 
 function makeMR(ready = 'True', synced = 'True') {
   return {
     metadata: { name: 'my-db', creationTimestamp: '2024-01-01T00:00:00Z' },
+    patch: vi.fn(),
     jsonData: {
       kind: 'NoSQLDB',
       apiVersion: 'nopesql.crossplane.io/v1alpha1',
@@ -80,5 +85,11 @@ describe('ManagedResourceDetail', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeMR('False', 'False')], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
+  });
+
+  test('renders a reconcile button', () => {
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    render(<ManagedResourceDetail />);
+    expect(screen.getByTitle('Trigger reconcile')).toBeTruthy();
   });
 });
