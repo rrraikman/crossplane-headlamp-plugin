@@ -11,6 +11,7 @@ import { useParams } from 'react-router-dom';
 import { FailingResource, fetchFailingManagedResource } from '../claims/Detail.utils';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { ReconcileButton } from '../components/ReconcileButton';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
@@ -24,10 +25,11 @@ export function CompositeDetail() {
   }>();
 
   const [xrs, error] = useDynamicKubeList(group, version, plural, false);
-  const xr = useMemo(
-    () => xrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
+  const xrResource = useMemo(
+    () => xrs?.find(r => r.metadata.name === name) ?? null,
     [xrs, name]
   );
+  const xr = xrResource?.jsonData ?? null;
 
   const [failingResource, setFailingResource] = useState<FailingResource | null>(null);
 
@@ -102,12 +104,17 @@ export function CompositeDetail() {
         </Box>
       )}
 
-      <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
-          label={readySyncedStatusLabel(ready, synced)}
-          color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
-        />,
-      ] }}>
+      <SectionBox title={name} headerProps={{
+        titleSideActions: [
+          <Chip size="small"
+            label={readySyncedStatusLabel(ready, synced)}
+            color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
+          />,
+        ],
+        actions: [
+          <ReconcileButton resource={xrResource!} />,
+        ],
+      }}>
         <NameValueTable
           rows={[
             { name: 'Kind', value: xr.kind },

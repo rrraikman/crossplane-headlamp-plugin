@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { ReconcileButton } from '../components/ReconcileButton';
 import { useDynamicKubeList } from '../hooks';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
@@ -22,10 +23,11 @@ export function ManagedResourceDetail() {
   }>();
 
   const [mrs, error] = useDynamicKubeList(group, version, plural, false);
-  const mr = useMemo(
-    () => mrs?.find(r => r.metadata.name === name)?.jsonData ?? null,
+  const mrResource = useMemo(
+    () => mrs?.find(r => r.metadata.name === name) ?? null,
     [mrs, name]
   );
+  const mr = mrResource?.jsonData ?? null;
 
   // Fetch full spec via GET (list responses sometimes omit it).
   const [spec, setSpec] = useState<any>(undefined);
@@ -84,12 +86,17 @@ export function ManagedResourceDetail() {
         </Box>
       )}
 
-      <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
-          label={readySyncedStatusLabel(ready, synced)}
-          color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
-        />,
-      ] }}>
+      <SectionBox title={name} headerProps={{
+        titleSideActions: [
+          <Chip size="small"
+            label={readySyncedStatusLabel(ready, synced)}
+            color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
+          />,
+        ],
+        actions: [
+          <ReconcileButton resource={mrResource!} />,
+        ],
+      }}>
         <NameValueTable
           rows={[
             { name: 'Kind', value: mr.kind },

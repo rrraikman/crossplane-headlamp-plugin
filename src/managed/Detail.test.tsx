@@ -13,9 +13,14 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
     <dl>{rows.filter(r => !r.hide).map(r => <div key={r.name}><dt>{r.name}</dt><dd>{r.value}</dd></div>)}</dl>
   ),
   SectionBox: ({ title, children, headerProps }: any) => (
-    <section><h2>{title}</h2>{headerProps?.titleSideActions}{children}</section>
+    <section><h2>{title}</h2>{headerProps?.titleSideActions}{headerProps?.actions}{children}</section>
   ),
   Link: ({ children }: any) => <span>{children}</span>,
+  ActionButton: ({ description, onClick, iconButtonProps }: any) => (
+    <button aria-label={description} onClick={onClick} disabled={iconButtonProps?.disabled}>
+      {description}
+    </button>
+  ),
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -30,12 +35,17 @@ vi.mock('react-router-dom', () => ({
 vi.mock('../components/ConditionsTable', () => ({ ConditionsTable: () => null }));
 vi.mock('../components/EventsTable', () => ({ EventsTable: () => null }));
 
+vi.mock('@iconify/react', () => ({
+  Icon: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
+}));
+
 import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
 import { ManagedResourceDetail } from './Detail';
 
 function makeMR(ready = 'True', synced = 'True') {
   return {
     metadata: { name: 'my-db', creationTimestamp: '2024-01-01T00:00:00Z' },
+    patch: vi.fn(),
     jsonData: {
       kind: 'NoSQLDB',
       apiVersion: 'nopesql.crossplane.io/v1alpha1',
@@ -80,5 +90,11 @@ describe('ManagedResourceDetail', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeMR('False', 'False')], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
+  });
+
+  test('renders a reconcile button', () => {
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    render(<ManagedResourceDetail />);
+    expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
   });
 });
