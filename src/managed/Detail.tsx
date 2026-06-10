@@ -86,13 +86,17 @@ export function ManagedResourceDetail() {
         </Box>
       )}
 
-      <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
-          label={readySyncedStatusLabel(ready, synced)}
-          color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
-        />,
-        <ReconcileButton resource={mrResource!} />,
-      ] }}>
+      <SectionBox title={name} headerProps={{
+        titleSideActions: [
+          <Chip size="small"
+            label={readySyncedStatusLabel(ready, synced)}
+            color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
+          />,
+        ],
+        actions: [
+          <ReconcileButton resource={mrResource!} />,
+        ],
+      }}>
         <NameValueTable
           rows={[
             { name: 'Kind', value: mr.kind },

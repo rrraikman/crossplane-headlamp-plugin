@@ -16,9 +16,14 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
     <dl>{rows.filter(r => !r.hide).map(r => <div key={r.name}><dt>{r.name}</dt><dd>{r.value}</dd></div>)}</dl>
   ),
   SectionBox: ({ title, children, headerProps }: any) => (
-    <section><h2>{title}</h2>{headerProps?.titleSideActions}{children}</section>
+    <section><h2>{title}</h2>{headerProps?.titleSideActions}{headerProps?.actions}{children}</section>
   ),
   Link: ({ children }: any) => <span>{children}</span>,
+  ActionButton: ({ description, onClick, iconButtonProps }: any) => (
+    <button aria-label={description} onClick={onClick} disabled={iconButtonProps?.disabled}>
+      {description}
+    </button>
+  ),
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -100,7 +105,7 @@ describe('ClaimDetail', () => {
   test('renders a reconcile button', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
     render(<ClaimDetail />);
-    expect(screen.getByTitle('Trigger reconcile')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
   });
 
   test('shows error banner with XR condition message when XR is failing', async () => {

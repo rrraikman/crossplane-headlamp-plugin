@@ -135,13 +135,17 @@ export function ClaimDetail() {
         </Box>
       )}
 
-      <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
-          label={readySyncedStatusLabel(ready, synced)}
-          color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
-        />,
-        <ReconcileButton resource={claimResource!} />,
-      ] }}>
+      <SectionBox title={name} headerProps={{
+        titleSideActions: [
+          <Chip size="small"
+            label={readySyncedStatusLabel(ready, synced)}
+            color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
+          />,
+        ],
+        actions: [
+          <ReconcileButton resource={claimResource!} />,
+        ],
+      }}>
         <NameValueTable
           rows={[
             { name: 'Kind', value: claim.kind },

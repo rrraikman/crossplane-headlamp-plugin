@@ -1,5 +1,4 @@
-import { Icon } from '@iconify/react';
-import { CircularProgress, IconButton } from '@mui/material';
+import { ActionButton } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useState } from 'react';
 
 // Any annotation change bumps resourceVersion, which causes the controller's
@@ -23,7 +22,7 @@ export function ReconcileButton({ resource }: ReconcileButtonProps) {
       .catch(() => setStatus('error'));
   }
 
-  const label =
+  const description =
     status === 'success' ? 'Reconcile triggered' :
     status === 'error' ? 'Failed to trigger reconcile' :
     'Trigger reconcile';
@@ -34,14 +33,12 @@ export function ReconcileButton({ resource }: ReconcileButtonProps) {
     'mdi:refresh';
 
   return (
-    <IconButton
+    <ActionButton
+      description={description}
+      icon={icon}
+      width={20}
       onClick={handleClick}
-      size="small"
-      disabled={status === 'loading'}
-      title={label}
-      aria-label={label}
-    >
-      {status === 'loading' ? <CircularProgress size={18} /> : <Icon icon={icon} width={20} />}
-    </IconButton>
+      iconButtonProps={{ size: 'small', disabled: status === 'loading' }}
+    />
   );
 }

@@ -104,13 +104,17 @@ export function CompositeDetail() {
         </Box>
       )}
 
-      <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
-          label={readySyncedStatusLabel(ready, synced)}
-          color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
-        />,
-        <ReconcileButton resource={xrResource!} />,
-      ] }}>
+      <SectionBox title={name} headerProps={{
+        titleSideActions: [
+          <Chip size="small"
+            label={readySyncedStatusLabel(ready, synced)}
+            color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
+          />,
+        ],
+        actions: [
+          <ReconcileButton resource={xrResource!} />,
+        ],
+      }}>
         <NameValueTable
           rows={[
             { name: 'Kind', value: xr.kind },

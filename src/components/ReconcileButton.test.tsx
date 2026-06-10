@@ -11,13 +11,13 @@ import { ReconcileButton } from './ReconcileButton';
 describe('ReconcileButton', () => {
   test('renders in idle state', () => {
     render(<ReconcileButton resource={{ patch: vi.fn() }} />);
-    expect(screen.getByTitle('Trigger reconcile')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
   });
 
   test('patches the resource with a reconcile annotation on click', async () => {
     const patch = vi.fn().mockResolvedValue({});
     render(<ReconcileButton resource={{ patch }} />);
-    fireEvent.click(screen.getByTitle('Trigger reconcile'));
+    fireEvent.click(screen.getByRole('button', { name: 'Trigger reconcile' }));
     await waitFor(() => {
       expect(patch).toHaveBeenCalledWith({
         metadata: { annotations: { 'swefarm.com/reconcile-requested-at': expect.any(String) } },
@@ -28,18 +28,18 @@ describe('ReconcileButton', () => {
   test('shows success state after a successful patch', async () => {
     const patch = vi.fn().mockResolvedValue({});
     render(<ReconcileButton resource={{ patch }} />);
-    fireEvent.click(screen.getByTitle('Trigger reconcile'));
+    fireEvent.click(screen.getByRole('button', { name: 'Trigger reconcile' }));
     await waitFor(() => {
-      expect(screen.getByTitle('Reconcile triggered')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Reconcile triggered' })).toBeTruthy();
     });
   });
 
   test('shows error state when the patch fails', async () => {
     const patch = vi.fn().mockRejectedValue(new Error('boom'));
     render(<ReconcileButton resource={{ patch }} />);
-    fireEvent.click(screen.getByTitle('Trigger reconcile'));
+    fireEvent.click(screen.getByRole('button', { name: 'Trigger reconcile' }));
     await waitFor(() => {
-      expect(screen.getByTitle('Failed to trigger reconcile')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Failed to trigger reconcile' })).toBeTruthy();
     });
   });
 });
