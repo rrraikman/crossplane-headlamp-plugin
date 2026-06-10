@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.9.1...crossplane-headlamp-plugin-v1.10.0) (2026-06-10)
+
+
+### Features
+
+* add reconcile button to detail views ([#68](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/68)) ([f8c0123](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/f8c01234ff80738eeaba7ec371b8b2f56bcdfc6f))
+* surface errors at every level without requiring hierarchy navigation ([#65](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/65)) ([f3820dc](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/f3820dcf777222f4150b0e728e5d8bf574426161))
+
 ## [1.9.1](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.9.0...crossplane-headlamp-plugin-v1.9.1) (2026-06-08)
 
 
