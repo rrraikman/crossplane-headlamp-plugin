@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.10.0...crossplane-headlamp-plugin-v1.10.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* rename reconcile annotation domain from swefarm.com ([#75](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/75)) ([e1b65bd](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/e1b65bd0f60e614f7edd6f865ed68e08044d2996))
+
 ## [1.10.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.9.1...crossplane-headlamp-plugin-v1.10.0) (2026-06-10)
 
 
