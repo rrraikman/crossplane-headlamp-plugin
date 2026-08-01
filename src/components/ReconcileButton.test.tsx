@@ -20,7 +20,11 @@ describe('ReconcileButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Trigger reconcile' }));
     await waitFor(() => {
       expect(patch).toHaveBeenCalledWith({
-        metadata: { annotations: { 'swefarm.com/reconcile-requested-at': expect.any(String) } },
+        metadata: {
+          annotations: {
+            'crossplane-headlamp-plugin.io/reconcile-requested-at': expect.any(String),
+          },
+        },
       });
     });
   });
