@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 // Any annotation change bumps resourceVersion, which causes the controller's
 // watch to fire and triggers a fresh reconcile — same as `kubectl annotate ... --overwrite`.
-const RECONCILE_ANNOTATION = 'swefarm.com/reconcile-requested-at';
+const RECONCILE_ANNOTATION = 'crossplane-headlamp-plugin.io/reconcile-requested-at';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
