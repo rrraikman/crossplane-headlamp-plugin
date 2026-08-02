@@ -1,5 +1,6 @@
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
-import { SectionBox, SimpleTable } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { age } from '../utils';
@@ -15,6 +16,7 @@ export function EventsTable({
   namespace?: string;
 }) {
   const [events, setEvents] = useState<any[] | null>(null);
+  const filterFunction = useFilterFunc();
 
   useEffect(() => {
     const parts = [`involvedObject.name=${resourceName}`];
@@ -34,42 +36,46 @@ export function EventsTable({
 
   return (
     <SectionBox title={`Events (${events?.length ?? '…'})`}>
-      <SimpleTable
+      <Table
         columns={[
           {
-            label: 'Type',
-            getter: (e: any) => (
+            header: 'Type',
+            accessorFn: (e: any) => e.type,
+            Cell: ({ row }: any) => (
               <Chip
                 size="small"
-                label={e.type}
-                color={e.type === 'Warning' ? 'warning' : 'success'}
+                label={row.original.type}
+                color={row.original.type === 'Warning' ? 'warning' : 'success'}
                 variant="outlined"
               />
             ),
           },
-          { label: 'Reason', getter: (e: any) => e.reason },
+          { header: 'Reason', accessorFn: (e: any) => e.reason },
           {
-            label: 'Message',
-            getter: (e: any) => (
-              <Tooltip title={e.message} placement="top-start">
+            header: 'Message',
+            accessorFn: (e: any) => e.message,
+            Cell: ({ row }: any) => (
+              <Tooltip title={row.original.message} placement="top-start">
                 <Typography
                   variant="body2"
                   noWrap
                   sx={{ maxWidth: 520, cursor: 'default', fontFamily: 'monospace' }}
                 >
-                  {e.message}
+                  {row.original.message}
                 </Typography>
               </Tooltip>
             ),
           },
-          { label: 'Count', getter: (e: any) => e.count ?? 1 },
+          { header: 'Count', accessorFn: (e: any) => e.count ?? 1 },
           {
-            label: 'Age',
-            getter: (e: any) =>
+            header: 'Age',
+            accessorFn: (e: any) =>
               age(e.lastTimestamp ?? e.eventTime ?? e.metadata.creationTimestamp),
           },
         ]}
-        data={sorted}
+        data={sorted ?? []}
+        loading={sorted === null}
+        filterFunction={filterFunction}
         emptyMessage="No recent events"
       />
     </SectionBox>

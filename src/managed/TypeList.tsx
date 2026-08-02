@@ -4,8 +4,9 @@ import {
   Loader,
   NameValueTable,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useDynamicKubeList } from '../hooks';
@@ -28,6 +29,7 @@ export function ManagedResourceTypeList() {
   }>();
 
   const [mrs, error] = useDynamicKubeList(group, version, plural, false, { kind });
+  const filterFunction = useFilterFunc();
 
   if (!mrs && !error) return <Loader title={`Loading ${kind} resources...`} />;
 
@@ -47,38 +49,42 @@ export function ManagedResourceTypeList() {
       </SectionBox>
 
       <SectionBox title={`Instances (${rows.length})`}>
-        <SimpleTable
+        <Table
           columns={[
             {
-              label: 'Name',
-              getter: (r: any) => (
+              header: 'Name',
+              accessorFn: (r: any) => r.metadata.name,
+              Cell: ({ row }: any) => (
                 <HeadlampLink
                   routeName="crossplane-managed-detail"
-                  params={{ group, version, plural, name: r.metadata.name }}
+                  params={{ group, version, plural, name: row.original.metadata.name }}
                 >
-                  {r.metadata.name}
+                  {row.original.metadata.name}
                 </HeadlampLink>
               ),
             },
             {
-              label: 'Ready',
-              getter: (r: any) => (
+              header: 'Ready',
+              accessorFn: (r: any) => rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Ready'),
+              Cell: ({ row }: any) => (
                 <StatusChip
-                  status={rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Ready')}
+                  status={rawConditionStatus(row.original.jsonData?.status?.conditions ?? [], 'Ready')}
                 />
               ),
             },
             {
-              label: 'Synced',
-              getter: (r: any) => (
+              header: 'Synced',
+              accessorFn: (r: any) => rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Synced'),
+              Cell: ({ row }: any) => (
                 <StatusChip
-                  status={rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Synced')}
+                  status={rawConditionStatus(row.original.jsonData?.status?.conditions ?? [], 'Synced')}
                 />
               ),
             },
-            { label: 'Age', getter: (r: any) => age(r.metadata.creationTimestamp) },
+            { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
           ]}
           data={rows}
+          filterFunction={filterFunction}
           emptyMessage={`No ${kind} instances have been created yet`}
         />
       </SectionBox>

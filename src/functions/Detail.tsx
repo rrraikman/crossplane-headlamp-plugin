@@ -4,8 +4,9 @@ import {
   Loader,
   NameValueTable,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip } from '@mui/material';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -19,6 +20,7 @@ export function FunctionDetail() {
   const { name } = useParams<{ name: string }>();
   const [fn] = CrossplaneFunction.useGet(name);
   const [compositions] = Composition.useList();
+  const filterFunction = useFilterFunc();
 
   const revisionName = fn?.jsonData?.status?.currentRevision ?? '';
   const [revision] = CrossplaneFunctionRevision.useGet(revisionName);
@@ -76,20 +78,22 @@ export function FunctionDetail() {
       )}
 
       <SectionBox title={`Used by Compositions (${referencingCompositions.length})`}>
-        <SimpleTable
+        <Table
           columns={[
             {
-              label: 'Name',
-              getter: (c: any) => (
-                <HeadlampLink routeName="crossplane-composition-detail" params={{ name: c.metadata.name }}>
-                  {c.metadata.name}
+              header: 'Name',
+              accessorFn: (c: any) => c.metadata.name,
+              Cell: ({ row }: any) => (
+                <HeadlampLink routeName="crossplane-composition-detail" params={{ name: row.original.metadata.name }}>
+                  {row.original.metadata.name}
                 </HeadlampLink>
               ),
             },
-            { label: 'Composite Type', getter: (c: any) => c.jsonData.spec?.compositeTypeRef?.kind ?? '—' },
-            { label: 'Age', getter: (c: any) => age(c.metadata.creationTimestamp) },
+            { header: 'Composite Type', accessorFn: (c: any) => c.jsonData.spec?.compositeTypeRef?.kind ?? '—' },
+            { header: 'Age', accessorFn: (c: any) => age(c.metadata.creationTimestamp) },
           ]}
           data={referencingCompositions}
+          filterFunction={filterFunction}
           emptyMessage="No compositions reference this function"
         />
       </SectionBox>

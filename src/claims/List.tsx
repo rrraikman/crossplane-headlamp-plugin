@@ -3,8 +3,9 @@ import {
   Link as HeadlampLink,
   Loader,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CompositeResourceDefinition } from '../resources';
@@ -14,6 +15,7 @@ import { ClaimRow, sortByReady } from './List.utils';
 export function ClaimList() {
   const [xrds] = CompositeResourceDefinition.useList();
   const [claims, setClaims] = useState<ClaimRow[] | null>(null);
+  const filterFunction = useFilterFunc<ClaimRow>();
 
   // Only XRDs that expose a claim type matter here.
   const claimXrds = useMemo(
@@ -83,33 +85,47 @@ export function ClaimList() {
           {claimXrds.map(x => x.jsonData.spec.claimNames.kind).join(', ')}
         </Typography>
       )}
-      <SimpleTable
+      <Table
         columns={[
-          { label: 'Namespace', getter: (r: ClaimRow) => r.namespace },
+          { header: 'Namespace', accessorFn: (r: ClaimRow) => r.namespace },
           {
-            label: 'Name',
-            getter: (r: ClaimRow) => (
-              <HeadlampLink
-                routeName="crossplane-claim-detail"
-                params={{
-                  group: r.group,
-                  version: r.version,
-                  plural: r.plural,
-                  namespace: r.namespace,
-                  name: r.name,
-                }}
-              >
-                {r.name}
-              </HeadlampLink>
-            ),
+            header: 'Name',
+            accessorFn: (r: ClaimRow) => r.name,
+            Cell: ({ row }: any) => {
+              const r: ClaimRow = row.original;
+              return (
+                <HeadlampLink
+                  routeName="crossplane-claim-detail"
+                  params={{
+                    group: r.group,
+                    version: r.version,
+                    plural: r.plural,
+                    namespace: r.namespace,
+                    name: r.name,
+                  }}
+                >
+                  {r.name}
+                </HeadlampLink>
+              );
+            },
           },
-          { label: 'Kind', getter: (r: ClaimRow) => r.kind },
-          { label: 'Ready', getter: (r: ClaimRow) => <StatusChip status={r.ready} /> },
-          { label: 'Synced', getter: (r: ClaimRow) => <StatusChip status={r.synced} /> },
+          { header: 'Kind', accessorFn: (r: ClaimRow) => r.kind },
           {
-            label: 'Message',
-            getter: (r: ClaimRow) =>
-              r.message ? (
+            header: 'Ready',
+            accessorFn: (r: ClaimRow) => r.ready,
+            Cell: ({ row }: any) => <StatusChip status={row.original.ready} />,
+          },
+          {
+            header: 'Synced',
+            accessorFn: (r: ClaimRow) => r.synced,
+            Cell: ({ row }: any) => <StatusChip status={row.original.synced} />,
+          },
+          {
+            header: 'Message',
+            accessorFn: (r: ClaimRow) => r.message ?? '—',
+            Cell: ({ row }: any) => {
+              const r: ClaimRow = row.original;
+              return r.message ? (
                 <HeadlampLink
                   routeName="crossplane-claim-detail"
                   params={{
@@ -133,11 +149,13 @@ export function ClaimList() {
                 </HeadlampLink>
               ) : (
                 '—'
-              ),
+              );
+            },
           },
-          { label: 'Age', getter: (r: ClaimRow) => age(r.creationTimestamp) },
+          { header: 'Age', accessorFn: (r: ClaimRow) => age(r.creationTimestamp) },
         ]}
         data={claims}
+        filterFunction={filterFunction}
         emptyMessage={emptyMessage}
       />
     </SectionBox>

@@ -1,5 +1,6 @@
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
-import { Link as HeadlampLink, SectionBox, SimpleTable } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { Link as HeadlampLink, SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { age, rawConditionStatus, StatusChip } from '../utils';
@@ -68,6 +69,7 @@ function debugMessage(conditions: any[]): string | null {
 
 export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[] | undefined }) {
   const [mrs, setMrs] = useState<any[] | null>(null);
+  const filterFunction = useFilterFunc();
 
   useEffect(() => {
     console.log('[ManagedResources] resourceRefs:', resourceRefs);
@@ -99,12 +101,14 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
 
   return (
     <SectionBox title={`Managed Resources (${mrs?.length ?? '…'})`}>
-      <SimpleTable
+      <Table
         columns={[
-          { label: 'Kind', getter: (r: any) => r.kind },
+          { header: 'Kind', accessorFn: (r: any) => r.kind },
           {
-            label: 'Name',
-            getter: (r: any) => {
+            header: 'Name',
+            accessorFn: (r: any) => r.metadata.name,
+            Cell: ({ row }: any) => {
+              const r = row.original;
               const apiVersion: string = r.apiVersion ?? '';
               const slashIdx = apiVersion.lastIndexOf('/');
               const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
@@ -121,20 +125,24 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
             },
           },
           {
-            label: 'Ready',
-            getter: (r: any) => (
-              <StatusChip status={rawConditionStatus(r.status?.conditions ?? [], 'Ready')} />
+            header: 'Ready',
+            accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Ready'),
+            Cell: ({ row }: any) => (
+              <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Ready')} />
             ),
           },
           {
-            label: 'Synced',
-            getter: (r: any) => (
-              <StatusChip status={rawConditionStatus(r.status?.conditions ?? [], 'Synced')} />
+            header: 'Synced',
+            accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Synced'),
+            Cell: ({ row }: any) => (
+              <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Synced')} />
             ),
           },
           {
-            label: 'Message',
-            getter: (r: any) => {
+            header: 'Message',
+            accessorFn: (r: any) => debugMessage(r.status?.conditions ?? []) ?? '—',
+            Cell: ({ row }: any) => {
+              const r = row.original;
               const msg = debugMessage(r.status?.conditions ?? []);
               if (!msg) return '—';
               const apiVersion: string = r.apiVersion ?? '';
@@ -161,9 +169,11 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
               );
             },
           },
-          { label: 'Age', getter: (r: any) => age(r.metadata.creationTimestamp) },
+          { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
         ]}
-        data={sorted}
+        data={sorted ?? []}
+        loading={sorted === null}
+        filterFunction={filterFunction}
         emptyMessage="No managed resources found"
       />
     </SectionBox>

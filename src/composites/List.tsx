@@ -3,8 +3,9 @@ import {
   Link as HeadlampLink,
   Loader,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { useEffect, useMemo, useState } from 'react';
 import { CompositeResourceDefinition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
@@ -13,6 +14,7 @@ import { sortByReady,XRRow } from './List.utils';
 export function CompositeResourceList() {
   const [xrds] = CompositeResourceDefinition.useList();
   const [xrs, setXrs] = useState<XRRow[] | null>(null);
+  const filterFunction = useFilterFunc<XRRow>();
 
   const xrdsKey = useMemo(
     () => xrds?.map(x => x.metadata.name).sort().join(',') ?? '',
@@ -57,25 +59,35 @@ export function CompositeResourceList() {
 
   return (
     <SectionBox title={`Composite Resources (${xrs.length})`}>
-      <SimpleTable
+      <Table
         columns={[
           {
-            label: 'Name',
-            getter: (r: XRRow) => (
+            header: 'Name',
+            accessorFn: (r: XRRow) => r.name,
+            Cell: ({ row }: any) => (
               <HeadlampLink
                 routeName="crossplane-composite-detail"
-                params={{ group: r.group, version: r.version, plural: r.plural, name: r.name }}
+                params={{ group: row.original.group, version: row.original.version, plural: row.original.plural, name: row.original.name }}
               >
-                {r.name}
+                {row.original.name}
               </HeadlampLink>
             ),
           },
-          { label: 'Kind', getter: (r: XRRow) => r.kind },
-          { label: 'Ready', getter: (r: XRRow) => <StatusChip status={r.ready} /> },
-          { label: 'Synced', getter: (r: XRRow) => <StatusChip status={r.synced} /> },
-          { label: 'Age', getter: (r: XRRow) => age(r.creationTimestamp) },
+          { header: 'Kind', accessorFn: (r: XRRow) => r.kind },
+          {
+            header: 'Ready',
+            accessorFn: (r: XRRow) => r.ready,
+            Cell: ({ row }: any) => <StatusChip status={row.original.ready} />,
+          },
+          {
+            header: 'Synced',
+            accessorFn: (r: XRRow) => r.synced,
+            Cell: ({ row }: any) => <StatusChip status={row.original.synced} />,
+          },
+          { header: 'Age', accessorFn: (r: XRRow) => age(r.creationTimestamp) },
         ]}
         data={xrs}
+        filterFunction={filterFunction}
         emptyMessage="No composite resources found"
       />
     </SectionBox>
