@@ -1,37 +1,43 @@
-import { Link as HeadlampLink, SectionBox, SimpleTable } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { Link as HeadlampLink, SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { CompositeResourceDefinition } from '../resources';
 import { age, conditionStatus, StatusChip } from '../utils';
 
 export function XRDList() {
   const [xrds] = CompositeResourceDefinition.useList();
+  const filterFunction = useFilterFunc();
 
   return (
     <SectionBox title="Composite Resource Definitions">
-      <SimpleTable
+      <Table
         columns={[
           {
-            label: 'Name',
-            getter: (r: any) => (
-              <HeadlampLink routeName="crossplane-xrd-detail" params={{ name: r.metadata.name }}>
-                {r.metadata.name}
+            header: 'Name',
+            accessorFn: (r: any) => r.metadata.name,
+            Cell: ({ row }: any) => (
+              <HeadlampLink routeName="crossplane-xrd-detail" params={{ name: row.original.metadata.name }}>
+                {row.original.metadata.name}
               </HeadlampLink>
             ),
           },
-          { label: 'Group', getter: (r: any) => r.jsonData.spec?.group ?? '—' },
+          { header: 'Group', accessorFn: (r: any) => r.jsonData.spec?.group ?? '—' },
           {
-            label: 'Versions',
-            getter: (r: any) =>
+            header: 'Versions',
+            accessorFn: (r: any) =>
               r.jsonData.spec?.versions?.map((v: any) => v.name).join(', ') ?? '—',
           },
-          { label: 'Composite Kind', getter: (r: any) => r.jsonData.spec?.names?.kind ?? '—' },
-          { label: 'Claim Kind', getter: (r: any) => r.jsonData.spec?.claimNames?.kind ?? '—' },
+          { header: 'Composite Kind', accessorFn: (r: any) => r.jsonData.spec?.names?.kind ?? '—' },
+          { header: 'Claim Kind', accessorFn: (r: any) => r.jsonData.spec?.claimNames?.kind ?? '—' },
           {
-            label: 'Established',
-            getter: (r: any) => <StatusChip status={conditionStatus(r, 'Established')} />,
+            header: 'Established',
+            accessorFn: (r: any) => conditionStatus(r, 'Established'),
+            Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Established')} />,
           },
-          { label: 'Age', getter: (r: any) => age(r.metadata.creationTimestamp) },
+          { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
         ]}
-        data={xrds}
+        data={xrds ?? []}
+        loading={xrds === null}
+        filterFunction={filterFunction}
         emptyMessage="No composite resource definitions found"
       />
     </SectionBox>

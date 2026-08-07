@@ -1,43 +1,48 @@
 import {
   Link as HeadlampLink,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Composition } from '../resources';
 import { age } from '../utils';
 
 export function CompositionList() {
   const [compositions] = Composition.useList();
+  const filterFunction = useFilterFunc();
 
   return (
     <SectionBox title="Compositions">
-      <SimpleTable
+      <Table
         columns={[
           {
-            label: 'Name',
-            getter: (r: any) => (
+            header: 'Name',
+            accessorFn: (r: any) => r.metadata.name,
+            Cell: ({ row }: any) => (
               <HeadlampLink
                 routeName="crossplane-composition-detail"
-                params={{ name: r.metadata.name }}
+                params={{ name: row.original.metadata.name }}
               >
-                {r.metadata.name}
+                {row.original.metadata.name}
               </HeadlampLink>
             ),
           },
           {
-            label: 'Composite Type',
-            getter: (r: any) => r.jsonData.spec?.compositeTypeRef?.kind ?? '—',
+            header: 'Composite Type',
+            accessorFn: (r: any) => r.jsonData.spec?.compositeTypeRef?.kind ?? '—',
           },
           {
-            label: 'Mode',
-            getter: (r: any) => r.jsonData.spec?.mode ?? 'Resources',
+            header: 'Mode',
+            accessorFn: (r: any) => r.jsonData.spec?.mode ?? 'Resources',
           },
           {
-            label: 'Age',
-            getter: (r: any) => age(r.metadata.creationTimestamp),
+            header: 'Age',
+            accessorFn: (r: any) => age(r.metadata.creationTimestamp),
           },
         ]}
-        data={compositions}
+        data={compositions ?? []}
+        loading={compositions === null}
+        filterFunction={filterFunction}
         emptyMessage="No compositions found"
       />
     </SectionBox>

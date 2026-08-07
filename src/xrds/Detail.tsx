@@ -4,8 +4,9 @@ import {
   Loader,
   NameValueTable,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -37,6 +38,7 @@ export function XRDDetail() {
   const [compositions] = Composition.useList();
   const [xrs, setXrs] = useState<any[] | null>(null);
   const [claims, setClaims] = useState<any[] | null>(null);
+  const filterFunction = useFilterFunc<any>();
 
   useEffect(() => {
     if (!xrd) return;
@@ -84,33 +86,37 @@ export function XRDDetail() {
 
   const statusColumns = [
     {
-      label: 'Ready',
-      getter: (r: any) => (
-        <StatusChip status={rawConditionStatus(r.status?.conditions ?? [], 'Ready')} />
+      header: 'Ready',
+      accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Ready'),
+      Cell: ({ row }: any) => (
+        <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Ready')} />
       ),
     },
     {
-      label: 'Synced',
-      getter: (r: any) => (
-        <StatusChip status={rawConditionStatus(r.status?.conditions ?? [], 'Synced')} />
+      header: 'Synced',
+      accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Synced'),
+      Cell: ({ row }: any) => (
+        <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Synced')} />
       ),
     },
     {
-      label: 'Message',
-      getter: (r: any) => <MessageCell conditions={r.status?.conditions ?? []} />,
+      header: 'Message',
+      accessorFn: (r: any) => debugMessage(r.status?.conditions ?? []) ?? '—',
+      Cell: ({ row }: any) => <MessageCell conditions={row.original.status?.conditions ?? []} />,
     },
-    { label: 'Age', getter: (r: any) => age(r.metadata.creationTimestamp) },
+    { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
   ];
 
   const xrColumns = [
     {
-      label: 'Name',
-      getter: (r: any) => (
+      header: 'Name',
+      accessorFn: (r: any) => r.metadata.name,
+      Cell: ({ row }: any) => (
         <HeadlampLink
           routeName="crossplane-composite-detail"
-          params={{ group: spec.group, version, plural: spec.names.plural, name: r.metadata.name }}
+          params={{ group: spec.group, version, plural: spec.names.plural, name: row.original.metadata.name }}
         >
-          {r.metadata.name}
+          {row.original.metadata.name}
         </HeadlampLink>
       ),
     },
@@ -118,21 +124,22 @@ export function XRDDetail() {
   ];
 
   const claimColumns = [
-    { label: 'Namespace', getter: (r: any) => r.metadata.namespace },
+    { header: 'Namespace', accessorFn: (r: any) => r.metadata.namespace },
     {
-      label: 'Name',
-      getter: (r: any) => (
+      header: 'Name',
+      accessorFn: (r: any) => r.metadata.name,
+      Cell: ({ row }: any) => (
         <HeadlampLink
           routeName="crossplane-claim-detail"
           params={{
             group: spec.group,
             version,
             plural: spec.claimNames?.plural ?? '',
-            namespace: r.metadata.namespace,
-            name: r.metadata.name,
+            namespace: row.original.metadata.namespace,
+            name: row.original.metadata.name,
           }}
         >
-          {r.metadata.name}
+          {row.original.metadata.name}
         </HeadlampLink>
       ),
     },
@@ -164,42 +171,47 @@ export function XRDDetail() {
       {/* 2. Not Ready instances */}
       {notReadyInstances.length > 0 && (
         <SectionBox title={`Not Ready (${notReadyInstances.length})`}>
-          <SimpleTable
+          <Table
             columns={[
-              { label: 'Kind', getter: (r: NotReadyInstance) => r.instanceKind },
-              { label: 'Name', getter: (r: NotReadyInstance) => r.name },
-              { label: 'Namespace', getter: (r: NotReadyInstance) => r.namespace },
+              { header: 'Kind', accessorFn: (r: NotReadyInstance) => r.instanceKind },
+              { header: 'Name', accessorFn: (r: NotReadyInstance) => r.name },
+              { header: 'Namespace', accessorFn: (r: NotReadyInstance) => r.namespace },
               {
-                label: 'Reason',
-                getter: (r: NotReadyInstance) => (
-                  <Chip size="small" label={r.reason} color="error" variant="outlined" />
+                header: 'Reason',
+                accessorFn: (r: NotReadyInstance) => r.reason,
+                Cell: ({ row }: any) => (
+                  <Chip size="small" label={row.original.reason} color="error" variant="outlined" />
                 ),
               },
               {
-                label: 'Message',
-                getter: (r: NotReadyInstance) => (
-                  <Tooltip title={r.message} placement="top-start">
+                header: 'Message',
+                accessorFn: (r: NotReadyInstance) => r.message,
+                Cell: ({ row }: any) => (
+                  <Tooltip title={row.original.message} placement="top-start">
                     <Typography
                       variant="body2"
                       noWrap
                       sx={{ maxWidth: 480, cursor: 'default', fontFamily: 'monospace' }}
                     >
-                      {r.message}
+                      {row.original.message}
                     </Typography>
                   </Tooltip>
                 ),
               },
             ]}
             data={notReadyInstances}
+            filterFunction={filterFunction}
           />
         </SectionBox>
       )}
 
       {/* 4. Composite Resources */}
       <SectionBox title={`Composite Resources (${xrs?.length ?? '…'})`}>
-        <SimpleTable
+        <Table
           columns={xrColumns}
-          data={xrs ? sortByReady(xrs) : null}
+          data={xrs ? sortByReady(xrs) : []}
+          loading={xrs === null}
+          filterFunction={filterFunction}
           emptyMessage="No composite resources found"
         />
       </SectionBox>
@@ -207,9 +219,10 @@ export function XRDDetail() {
       {/* 5. Claims */}
       {claims !== null && (
         <SectionBox title={`Claims (${claims.length})`}>
-          <SimpleTable
+          <Table
             columns={claimColumns}
             data={sortByReady(claims)}
+            filterFunction={filterFunction}
             emptyMessage="No claims found"
           />
         </SectionBox>
@@ -217,22 +230,24 @@ export function XRDDetail() {
 
       {/* 6. Compositions */}
       <SectionBox title={`Compositions (${relevantCompositions.length})`}>
-        <SimpleTable
+        <Table
           columns={[
             {
-              label: 'Name',
-              getter: (c: any) => (
+              header: 'Name',
+              accessorFn: (c: any) => c.metadata.name,
+              Cell: ({ row }: any) => (
                 <HeadlampLink
                   routeName="crossplane-composition-detail"
-                  params={{ name: c.metadata.name }}
+                  params={{ name: row.original.metadata.name }}
                 >
-                  {c.metadata.name}
+                  {row.original.metadata.name}
                 </HeadlampLink>
               ),
             },
-            { label: 'Age', getter: (c: any) => age(c.metadata.creationTimestamp) },
+            { header: 'Age', accessorFn: (c: any) => age(c.metadata.creationTimestamp) },
           ]}
           data={relevantCompositions}
+          filterFunction={filterFunction}
           emptyMessage="No compositions reference this XRD"
         />
       </SectionBox>

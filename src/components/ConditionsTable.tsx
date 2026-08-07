@@ -1,4 +1,5 @@
-import { SimpleTable } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Chip, Tooltip, Typography } from '@mui/material';
 import { age, StatusChip } from '../utils';
 
@@ -9,19 +10,26 @@ export function reasonColor(status: string): 'success' | 'error' | 'warning' {
 }
 
 export function ConditionsTable({ conditions }: { conditions: any[] | undefined }) {
+  const filterFunction = useFilterFunc();
+
   return (
-    <SimpleTable
+    <Table
       columns={[
-        { label: 'Type', getter: (c: any) => c.type },
-        { label: 'Status', getter: (c: any) => <StatusChip status={c.status} /> },
+        { header: 'Type', accessorFn: (c: any) => c.type },
         {
-          label: 'Reason',
-          getter: (c: any) =>
-            c.reason ? (
+          header: 'Status',
+          accessorFn: (c: any) => c.status,
+          Cell: ({ row }: any) => <StatusChip status={row.original.status} />,
+        },
+        {
+          header: 'Reason',
+          accessorFn: (c: any) => c.reason ?? '—',
+          Cell: ({ row }: any) =>
+            row.original.reason ? (
               <Chip
                 size="small"
-                label={c.reason}
-                color={reasonColor(c.status)}
+                label={row.original.reason}
+                color={reasonColor(row.original.status)}
                 variant="outlined"
               />
             ) : (
@@ -29,16 +37,17 @@ export function ConditionsTable({ conditions }: { conditions: any[] | undefined 
             ),
         },
         {
-          label: 'Message',
-          getter: (c: any) =>
-            c.message ? (
-              <Tooltip title={c.message} placement="top-start">
+          header: 'Message',
+          accessorFn: (c: any) => c.message ?? '—',
+          Cell: ({ row }: any) =>
+            row.original.message ? (
+              <Tooltip title={row.original.message} placement="top-start">
                 <Typography
                   variant="body2"
                   noWrap
                   sx={{ maxWidth: 480, cursor: 'default', fontFamily: 'monospace' }}
                 >
-                  {c.message}
+                  {row.original.message}
                 </Typography>
               </Tooltip>
             ) : (
@@ -46,11 +55,12 @@ export function ConditionsTable({ conditions }: { conditions: any[] | undefined 
             ),
         },
         {
-          label: 'Last Transition',
-          getter: (c: any) => (c.lastTransitionTime ? age(c.lastTransitionTime) : '—'),
+          header: 'Last Transition',
+          accessorFn: (c: any) => (c.lastTransitionTime ? age(c.lastTransitionTime) : '—'),
         },
       ]}
       data={conditions ?? []}
+      filterFunction={filterFunction}
       emptyMessage="No conditions reported"
     />
   );

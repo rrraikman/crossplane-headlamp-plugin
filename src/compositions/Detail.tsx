@@ -5,8 +5,9 @@ import {
   Loader,
   NameValueTable,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Paper, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
@@ -17,6 +18,7 @@ import { age, conditionStatus, StatusChip } from '../utils';
 export function CompositionDetail() {
   const { name } = useParams<{ name: string }>();
   const [composition] = Composition.useGet(name);
+  const filterFunction = useFilterFunc();
 
   if (!composition) return <Loader title="Loading..." />;
 
@@ -102,14 +104,15 @@ export function CompositionDetail() {
         </SectionBox>
       ) : (
         <SectionBox title={`Resources (${resources.length})`}>
-          <SimpleTable
+          <Table
             columns={[
-              { label: 'Name', getter: (r: any) => r.name ?? '—' },
-              { label: 'Kind', getter: (r: any) => r.base?.kind ?? '—' },
-              { label: 'API Version', getter: (r: any) => r.base?.apiVersion ?? '—' },
-              { label: 'Patches', getter: (r: any) => String(r.patches?.length ?? 0) },
+              { header: 'Name', accessorFn: (r: any) => r.name ?? '—' },
+              { header: 'Kind', accessorFn: (r: any) => r.base?.kind ?? '—' },
+              { header: 'API Version', accessorFn: (r: any) => r.base?.apiVersion ?? '—' },
+              { header: 'Patches', accessorFn: (r: any) => String(r.patches?.length ?? 0) },
             ]}
             data={resources}
+            filterFunction={filterFunction}
             emptyMessage="No resources defined"
           />
         </SectionBox>

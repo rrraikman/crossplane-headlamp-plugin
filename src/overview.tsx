@@ -2,8 +2,9 @@ import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import {
   Link as HeadlampLink,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Paper, Tooltip, Typography, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
@@ -18,14 +19,18 @@ import { CompositeResourceDefinition, Composition, Configuration, Provider } fro
 import { getReferenceableVersion } from './utils';
 
 function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
+  const filterFunction = useFilterFunc<NotReadyEntry>();
+
   return (
     <SectionBox title="Not Ready">
-      <SimpleTable
+      <Table
         columns={[
-          { label: 'Kind', getter: (r: NotReadyEntry) => r.kind },
+          { header: 'Kind', accessorFn: (r: NotReadyEntry) => r.kind },
           {
-            label: 'Name',
-            getter: (r: NotReadyEntry) => {
+            header: 'Name',
+            accessorFn: (r: NotReadyEntry) => r.name,
+            Cell: ({ row }: any) => {
+              const r: NotReadyEntry = row.original;
               const route = resolveDetailRoute(r);
               return route ? (
                 <HeadlampLink routeName={route.routeName} params={route.params}>
@@ -36,16 +41,19 @@ function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
               );
             },
           },
-          { label: 'Condition', getter: (r: NotReadyEntry) => r.conditionType },
+          { header: 'Condition', accessorFn: (r: NotReadyEntry) => r.conditionType },
           {
-            label: 'Reason',
-            getter: (r: NotReadyEntry) => (
-              <Chip size="small" label={r.reason} color="error" variant="outlined" />
+            header: 'Reason',
+            accessorFn: (r: NotReadyEntry) => r.reason,
+            Cell: ({ row }: any) => (
+              <Chip size="small" label={row.original.reason} color="error" variant="outlined" />
             ),
           },
           {
-            label: 'Message',
-            getter: (r: NotReadyEntry) => {
+            header: 'Message',
+            accessorFn: (r: NotReadyEntry) => r.message,
+            Cell: ({ row }: any) => {
+              const r: NotReadyEntry = row.original;
               const route = resolveDetailRoute(r);
               const text = (
                 <Tooltip title={r.message} placement="top-start">
@@ -67,6 +75,7 @@ function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
           },
         ]}
         data={items}
+        filterFunction={filterFunction}
         emptyMessage="All resources are ready"
       />
     </SectionBox>

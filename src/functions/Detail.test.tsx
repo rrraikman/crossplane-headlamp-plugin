@@ -17,16 +17,26 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
   SectionBox: ({ title, children, headerProps }: any) => (
     <section><h2>{title}</h2>{headerProps?.titleSideActions}{children}</section>
   ),
-  SimpleTable: ({ data, emptyMessage, columns }: any) => (
+  Table: ({ data, emptyMessage, columns }: any) => (
     <>
       {!data || data.length === 0
         ? <span>{emptyMessage}</span>
         : (data as any[]).map((row, i) => (
-            <div key={i}>{(columns as any[]).map((col: any) => <span key={col.label}>{col.getter(row)}</span>)}</div>
+            <div key={i}>
+              {(columns as any[]).map((col: any) => (
+                <span key={col.header}>
+                  {col.Cell ? col.Cell({ row: { original: row } }) : col.accessorFn(row)}
+                </span>
+              ))}
+            </div>
           ))}
     </>
   ),
   Link: ({ children }: any) => <span>{children}</span>,
+}));
+
+vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
+  useFilterFunc: () => () => true,
 }));
 
 vi.mock('react-router-dom', () => ({
