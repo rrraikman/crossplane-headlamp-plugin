@@ -23,7 +23,7 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
           ))}
     </>
   ),
-  Link: ({ children }: any) => <span>{children}</span>,
+  Link: ({ children }: any) => <span data-testid="link">{children}</span>,
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
@@ -66,5 +66,26 @@ describe('ManagedResources', () => {
     await waitFor(() => {
       expect(screen.getByText('my-mr')).toBeTruthy();
     });
+  });
+
+  test('renders name as plain text (not a link) for core/legacy resources with no API group', async () => {
+    vi.mocked(request).mockImplementation((path: string) => {
+      if (path === '/api/v1') {
+        return Promise.resolve({ resources: [{ kind: 'ConfigMap', name: 'configmaps' }] });
+      }
+      return Promise.resolve({
+        items: [{
+          kind: 'ConfigMap',
+          apiVersion: 'v1',
+          metadata: { name: 'my-cm', creationTimestamp: '2024-01-01T00:00:00Z' },
+          status: { conditions: [] },
+        }],
+      });
+    });
+    render(<ManagedResources resourceRefs={[{ apiVersion: 'v1', kind: 'ConfigMap', name: 'my-cm' }]} />);
+    await waitFor(() => {
+      expect(screen.getByText('my-cm')).toBeTruthy();
+    });
+    expect(screen.queryByTestId('link')).toBeNull();
   });
 });
