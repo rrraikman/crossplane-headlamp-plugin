@@ -208,8 +208,8 @@ export function CrossplaneOverview() {
                     detailRoute: {
                       routeName: 'crossplane-claim-detail',
                       params: {
-                        group: claimGroup ?? group,
-                        version: claimVersion ?? version,
+                        group: claimGroup || group,
+                        version: claimVersion || version,
                         plural: spec.claimNames?.plural ?? claimRef.kind?.toLowerCase() + 's',
                         namespace: claimRef.namespace ?? 'default',
                         name: claimRef.name,

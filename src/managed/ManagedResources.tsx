@@ -14,13 +14,20 @@ interface ResourceRef {
 // Cache plural lookups so we don't repeat the same discovery call.
 const pluralCache = new Map<string, string>();
 
+// Core/legacy API resources (ConfigMap, Secret, Namespace, etc.) have no group
+// segment in their apiVersion (e.g. "v1" rather than "group/version").
+function parseApiVersion(apiVersion: string): { group: string; version: string } {
+  const slashIdx = apiVersion.lastIndexOf('/');
+  return slashIdx >= 0
+    ? { group: apiVersion.slice(0, slashIdx), version: apiVersion.slice(slashIdx + 1) }
+    : { group: '', version: apiVersion };
+}
+
 async function resolvePlural(apiVersion: string, kind: string): Promise<string> {
   const cacheKey = `${apiVersion}/${kind}`;
   if (pluralCache.has(cacheKey)) return pluralCache.get(cacheKey)!;
 
-  const slashIdx = apiVersion.lastIndexOf('/');
-  const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
-  const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion;
+  const { group, version } = parseApiVersion(apiVersion);
   const discoveryPath = group ? `/apis/${group}/${version}` : `/api/${version}`;
 
   try {
@@ -37,24 +44,17 @@ async function resolvePlural(apiVersion: string, kind: string): Promise<string> 
 }
 
 async function fetchMRList(apiVersion: string, kind: string, names: Set<string>): Promise<any[]> {
-  const slashIdx = apiVersion.lastIndexOf('/');
-  const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
-  const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion;
+  const { group, version } = parseApiVersion(apiVersion);
   const plural = await resolvePlural(apiVersion, kind);
   const path = group
     ? `/apis/${group}/${version}/${plural}`
     : `/api/${version}/${plural}`;
-  console.log('[ManagedResources] fetching list', path, 'names:', [...names]);
   try {
     const data = await request(path);
-    console.log('[ManagedResources] list response items:', data.items?.length, data.items?.map((r: any) => r.metadata.name));
-    const found = (data.items ?? [])
+    return (data.items ?? [])
       .filter((r: any) => names.has(r.metadata.name))
       .map((r: any) => ({ ...r, __plural: plural }));
-    console.log('[ManagedResources] matched:', found.length);
-    return found;
-  } catch (err) {
-    console.error('[ManagedResources] list failed', path, err);
+  } catch {
     return [];
   }
 }
@@ -72,7 +72,6 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
   const filterFunction = useFilterFunc();
 
   useEffect(() => {
-    console.log('[ManagedResources] resourceRefs:', resourceRefs);
     if (!resourceRefs || resourceRefs.length === 0) {
       setMrs([]);
       return;
@@ -109,11 +108,11 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
             accessorFn: (r: any) => r.metadata.name,
             Cell: ({ row }: any) => {
               const r = row.original;
-              const apiVersion: string = r.apiVersion ?? '';
-              const slashIdx = apiVersion.lastIndexOf('/');
-              const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
-              const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion;
+              const { group, version } = parseApiVersion(r.apiVersion ?? '');
               const plural = r.__plural ?? r.kind.toLowerCase() + 's';
+              // Core/legacy resources (empty group, e.g. a raw ConfigMap) aren't
+              // routable via this CRD-shaped detail route.
+              if (!group) return r.metadata.name;
               return (
                 <HeadlampLink
                   routeName="crossplane-managed-detail"
@@ -145,26 +144,29 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
               const r = row.original;
               const msg = debugMessage(r.status?.conditions ?? []);
               if (!msg) return '—';
-              const apiVersion: string = r.apiVersion ?? '';
-              const slashIdx = apiVersion.lastIndexOf('/');
-              const group = slashIdx >= 0 ? apiVersion.slice(0, slashIdx) : '';
-              const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion;
+              const { group, version } = parseApiVersion(r.apiVersion ?? '');
               const plural = r.__plural ?? r.kind.toLowerCase() + 's';
+              const text = (
+                <Tooltip title={msg} placement="top-start">
+                  <Typography
+                    variant="body2"
+                    noWrap
+                    sx={{ maxWidth: 480, cursor: group ? 'pointer' : 'default', fontFamily: 'monospace', color: 'error.main' }}
+                  >
+                    {msg}
+                  </Typography>
+                </Tooltip>
+              );
+              // Core/legacy resources (empty group, e.g. a raw ConfigMap) aren't
+              // routable via this CRD-shaped detail route.
+              if (!group) return text;
               return (
                 <HeadlampLink
                   routeName="crossplane-managed-detail"
                   params={{ group, version, plural, name: r.metadata.name }}
                   style={{ textDecoration: 'none' }}
                 >
-                  <Tooltip title={msg} placement="top-start">
-                    <Typography
-                      variant="body2"
-                      noWrap
-                      sx={{ maxWidth: 480, cursor: 'pointer', fontFamily: 'monospace', color: 'error.main' }}
-                    >
-                      {msg}
-                    </Typography>
-                  </Tooltip>
+                  {text}
                 </HeadlampLink>
               );
             },
