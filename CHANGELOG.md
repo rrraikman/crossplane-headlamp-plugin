@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.10.1...crossplane-headlamp-plugin-v1.11.0) (2026-08-07)
+
+
+### Features
+
+* add search to all resource tables ([#77](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/77)) ([89aac30](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/89aac301430a13bf69ef61c6858835ca2578f31e))
+
+
+### Bug Fixes
+
+* don't crash linking to core-group managed resources ([#79](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/79)) ([a3c24a6](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/a3c24a686fdf9d68bf1c94284e2385d411232d87))
+
 ## [1.10.1](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.10.0...crossplane-headlamp-plugin-v1.10.1) (2026-08-01)
 
 
