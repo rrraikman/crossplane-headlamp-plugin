@@ -10,6 +10,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
 import { detailRouteParams } from './discovery';
 import {
+  countInstances,
+  crdToMRType,
+  fetchManagedResourceCRDs,
+  mapWithConcurrency,
+  mrListPath,
+} from './managed/List.utils';
+import {
   collectNotReady,
   countReady,
   countReadyWhenReported,
@@ -292,63 +299,45 @@ export function CrossplaneOverview() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 
-  // Discover managed resource CRDs and tally ready/total counts.
+  // Discover managed resource CRDs and tally ready/total counts. Counting is
+  // cheap (limit=1); only types that have instances are listed in full to read
+  // their Ready conditions.
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchMrStats() {
       try {
-        let crds: any[] = [];
-
-        // Step 1: try label selector (fast path)
-        const labeled: any = await request(
-          '/apis/apiextensions.k8s.io/v1/customresourcedefinitions?labelSelector=crossplane.io%2Fresource%3Dmanaged'
+        const types = (await fetchManagedResourceCRDs()).map(crdToMRType);
+        const totals = await mapWithConcurrency(types, 8, t =>
+          cancelled ? Promise.resolve(0) : countInstances(t).catch(() => 0)
         );
-        crds = labeled.items ?? [];
-
-        // Step 2: fall back to full CRD list filtered by category
-        if (crds.length === 0) {
-          const all: any = await request('/apis/apiextensions.k8s.io/v1/customresourcedefinitions');
-          crds = (all.items ?? []).filter((crd: any) =>
-            (crd.spec?.names?.categories ?? []).includes('managed')
-          );
-        }
-
-        if (crds.length === 0) {
-          setMrStats({ total: 0, ready: 0 });
-          return;
-        }
-
-        const results = await Promise.all(
-          crds.map(async (crd: any) => {
-            const group = crd.spec.group;
-            const storageVersion =
-              crd.spec.versions?.find((v: any) => v.storage) ?? crd.spec.versions?.[0];
-            const version = storageVersion?.name;
-            const plural = crd.spec.names.plural;
-            if (!group || !version || !plural) return { total: 0, ready: 0 };
-            try {
-              const data: any = await request(`/apis/${group}/${version}/${plural}`);
-              const items: any[] = data.items ?? [];
-              const ready = items.filter(
-                item =>
-                  item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
-              ).length;
-              return { total: items.length, ready };
-            } catch {
-              return { total: 0, ready: 0 };
-            }
-          })
-        );
-
+        const populated = types.filter((_, i) => totals[i] > 0);
+        const readyCounts = await mapWithConcurrency(populated, 8, async t => {
+          if (cancelled) return 0;
+          try {
+            const data: any = await request(mrListPath(t));
+            return (data.items ?? []).filter(
+              (item: any) =>
+                item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
+            ).length;
+          } catch {
+            return 0;
+          }
+        });
+        if (cancelled) return;
         setMrStats({
-          total: results.reduce((s, r) => s + r.total, 0),
-          ready: results.reduce((s, r) => s + r.ready, 0),
+          total: totals.reduce((s, n) => s + n, 0),
+          ready: readyCounts.reduce((s, n) => s + n, 0),
         });
       } catch {
-        setMrStats({ total: 0, ready: 0 });
+        if (!cancelled) setMrStats({ total: 0, ready: 0 });
       }
     }
 
     fetchMrStats();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const notReadyItems: NotReadyEntry[] = [

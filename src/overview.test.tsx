@@ -182,4 +182,35 @@ describe('CrossplaneOverview', () => {
       expect(screen.getByText('my-claim')).toBeTruthy();
     });
   });
+
+  test('counts managed resources cheaply and only lists populated types for readiness', async () => {
+    vi.mocked(Provider.useList).mockReturnValue([[], null]);
+    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    const crd = (plural: string) => ({
+      spec: { group: 'aws.io', names: { kind: plural, plural }, versions: [{ name: 'v1', storage: true }] },
+    });
+    mockRequest.mockReset();
+    mockRequest.mockImplementation((path: string) => {
+      if (path.includes('labelSelector')) return Promise.resolve({ items: [crd('buckets'), crd('queues')] });
+      if (path === '/apis/aws.io/v1/buckets?limit=1') {
+        return Promise.resolve({ items: [{}], metadata: { continue: 'x', remainingItemCount: 1 } });
+      }
+      if (path === '/apis/aws.io/v1/queues?limit=1') return Promise.resolve({ items: [], metadata: {} });
+      if (path === '/apis/aws.io/v1/buckets') {
+        return Promise.resolve({
+          items: [
+            { status: { conditions: [{ type: 'Ready', status: 'True' }] } },
+            { status: { conditions: [{ type: 'Ready', status: 'False' }] } },
+          ],
+        });
+      }
+      return Promise.resolve({ items: [] });
+    });
+    render(<CrossplaneOverview />);
+    await waitFor(() => expect(screen.getByText('1 / 2 ready')).toBeTruthy());
+    expect(mockRequest).not.toHaveBeenCalledWith('/apis/aws.io/v1/queues');
+  });
 });
+
