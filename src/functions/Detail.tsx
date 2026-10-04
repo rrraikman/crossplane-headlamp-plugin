@@ -14,9 +14,9 @@ import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
 import { PackageRevisionSection } from '../components/PackageRevisionSection';
+import { packageStatusLabel } from '../packages/Detail.utils';
 import { Composition, CrossplaneFunction, CrossplaneFunctionRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
-import { packageStatusLabel } from './Detail.utils';
 
 export function FunctionDetail() {
   const { name } = useParams<{ name: string }>();

@@ -50,11 +50,3 @@ export async function fetchReferencedResources(refs: ResourceRef[]): Promise<any
   );
   return results.flat();
 }
-
-export function debugMessage(conditions: any[]): string | null {
-  const synced = conditions?.find((c: any) => c.type === 'Synced');
-  if (synced && synced.status !== 'True' && synced.message) return synced.message;
-  const ready = conditions?.find((c: any) => c.type === 'Ready');
-  if (ready && ready.status !== 'True' && ready.message) return ready.message;
-  return null;
-}

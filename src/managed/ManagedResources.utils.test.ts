@@ -4,61 +4,9 @@ vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({ request: vi.fn() }));
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { clearDiscoveryCache } from '../discovery';
-import { debugMessage, fetchReferencedResources, refMatches, scopeRefs } from './ManagedResources.utils';
+import { fetchReferencedResources, refMatches, scopeRefs } from './ManagedResources.utils';
 
 const mockRequest = vi.mocked(request);
-
-// ── debugMessage ──────────────────────────────────────────────────────────────
-
-describe('debugMessage', () => {
-  test('returns Synced message when Synced is not True and has a message', () => {
-    const conditions = [
-      { type: 'Synced', status: 'False', message: 'provider config missing' },
-      { type: 'Ready', status: 'True', message: '' },
-    ];
-    expect(debugMessage(conditions)).toBe('provider config missing');
-  });
-
-  test('returns Ready message when Ready is not True and has a message (Synced is True)', () => {
-    const conditions = [
-      { type: 'Synced', status: 'True', message: '' },
-      { type: 'Ready', status: 'False', message: 'resource not found' },
-    ];
-    expect(debugMessage(conditions)).toBe('resource not found');
-  });
-
-  test('Synced message takes priority over Ready message', () => {
-    const conditions = [
-      { type: 'Synced', status: 'False', message: 'sync error' },
-      { type: 'Ready', status: 'False', message: 'ready error' },
-    ];
-    expect(debugMessage(conditions)).toBe('sync error');
-  });
-
-  test('returns null when all conditions are True', () => {
-    const conditions = [
-      { type: 'Synced', status: 'True', message: '' },
-      { type: 'Ready', status: 'True', message: '' },
-    ];
-    expect(debugMessage(conditions)).toBeNull();
-  });
-
-  test('returns null when conditions array is empty', () => {
-    expect(debugMessage([])).toBeNull();
-  });
-
-  test('returns null when conditions is null/undefined', () => {
-    expect(debugMessage(null as any)).toBeNull();
-  });
-
-  test('returns null when Synced is not True but has no message', () => {
-    const conditions = [
-      { type: 'Synced', status: 'False', message: '' },
-      { type: 'Ready', status: 'True', message: '' },
-    ];
-    expect(debugMessage(conditions)).toBeNull();
-  });
-});
 
 // ── scopeRefs ────────────────────────────────────────────────────────────────
 

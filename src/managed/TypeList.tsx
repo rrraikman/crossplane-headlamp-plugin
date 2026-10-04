@@ -11,15 +11,7 @@ import { Box } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { detailRouteParams } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
-import { age, rawConditionStatus, StatusChip } from '../utils';
-
-function sortByReady(items: any[]): any[] {
-  return [...items].sort((a, b) => {
-    const aOk = rawConditionStatus(a.jsonData?.status?.conditions ?? [], 'Ready') === 'True';
-    const bOk = rawConditionStatus(b.jsonData?.status?.conditions ?? [], 'Ready') === 'True';
-    return Number(aOk) - Number(bOk);
-  });
-}
+import { age, rawConditionStatus, sortFailingFirst, StatusChip } from '../utils';
 
 export function ManagedResourceTypeList() {
   const { group, version, plural, kind } = useParams<{
@@ -34,7 +26,10 @@ export function ManagedResourceTypeList() {
 
   if (!mrs && !error) return <Loader title={`Loading ${kind} resources...`} />;
 
-  const rows = sortByReady(mrs ?? []);
+  const rows = sortFailingFirst(
+    mrs ?? [],
+    r => rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Ready') === 'True'
+  );
   const anyNamespaced = rows.some(r => r.metadata.namespace);
 
   return (

@@ -1,73 +1,17 @@
 import { describe, expect, test } from 'vitest';
-import { buildNotReadyInstances, debugMessage, isReady, sortByReady } from './Detail.utils';
+import { buildNotReadyInstances, sortByReady } from './Detail.utils';
 
 function makeItem(name: string, conditions: any[], namespace?: string) {
   return { metadata: { name, ...(namespace ? { namespace } : {}) }, status: { conditions } };
 }
-
-// ── isReady ───────────────────────────────────────────────────────────────────
-
-describe('isReady', () => {
-  test('returns true when Ready condition is True', () => {
-    expect(isReady([{ type: 'Ready', status: 'True' }])).toBe(true);
-  });
-
-  test('returns false when Ready condition is False', () => {
-    expect(isReady([{ type: 'Ready', status: 'False' }])).toBe(false);
-  });
-
-  test('returns false when Ready condition is missing', () => {
-    expect(isReady([])).toBe(false);
-  });
-
-  test('returns false for null/undefined conditions', () => {
-    expect(isReady(null as any)).toBe(false);
-  });
-});
-
-// ── debugMessage ──────────────────────────────────────────────────────────────
-
-describe('debugMessage', () => {
-  test('returns Synced message when Synced is not True', () => {
-    const conds = [
-      { type: 'Synced', status: 'False', message: 'pipeline error' },
-      { type: 'Ready', status: 'False', message: 'not provisioned' },
-    ];
-    expect(debugMessage(conds)).toBe('pipeline error');
-  });
-
-  test('returns Ready message when Synced is True but Ready is not', () => {
-    const conds = [
-      { type: 'Synced', status: 'True' },
-      { type: 'Ready', status: 'False', message: 'still provisioning' },
-    ];
-    expect(debugMessage(conds)).toBe('still provisioning');
-  });
-
-  test('returns null when all conditions are True', () => {
-    const conds = [
-      { type: 'Synced', status: 'True' },
-      { type: 'Ready', status: 'True' },
-    ];
-    expect(debugMessage(conds)).toBeNull();
-  });
-
-  test('returns null when conditions is empty', () => {
-    expect(debugMessage([])).toBeNull();
-  });
-
-  test('returns null when failing condition has no message', () => {
-    expect(debugMessage([{ type: 'Synced', status: 'False' }])).toBeNull();
-  });
-});
 
 // ── sortByReady ───────────────────────────────────────────────────────────────
 
 describe('sortByReady', () => {
   test('not-ready items sort before ready items', () => {
     const items = [
-      makeItem('ready', [{ type: 'Ready', status: 'True' }]),
-      makeItem('not-ready', [{ type: 'Ready', status: 'False' }]),
+      makeItem('ready', [{ type: 'Ready', status: 'True' }, { type: 'Synced', status: 'True' }]),
+      makeItem('not-ready', [{ type: 'Ready', status: 'True' }, { type: 'Synced', status: 'False' }]),
     ];
     expect(sortByReady(items)[0].metadata.name).toBe('not-ready');
   });

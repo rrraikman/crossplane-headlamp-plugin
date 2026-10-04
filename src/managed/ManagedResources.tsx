@@ -3,8 +3,8 @@ import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { detailRouteParams, parseApiVersion } from '../discovery';
-import { age, rawConditionStatus, StatusChip } from '../utils';
-import { debugMessage, fetchReferencedResources, ResourceRef, scopeRefs } from './ManagedResources.utils';
+import { age, debugMessage, rawConditionStatus, sortFailingFirst, StatusChip } from '../utils';
+import { fetchReferencedResources, ResourceRef, scopeRefs } from './ManagedResources.utils';
 
 function detailParams(r: any): Record<string, string> | null {
   const apiVersion = r.__apiVersion ?? r.apiVersion ?? '';
@@ -47,11 +47,7 @@ export function ManagedResources({
   }, [scopedRefs]);
 
   const sorted = mrs
-    ? [...mrs].sort((a, b) => {
-        const aOk = rawConditionStatus(a.status?.conditions ?? [], 'Ready') === 'True';
-        const bOk = rawConditionStatus(b.status?.conditions ?? [], 'Ready') === 'True';
-        return Number(aOk) - Number(bOk);
-      })
+    ? sortFailingFirst(mrs, r => rawConditionStatus(r.status?.conditions ?? [], 'Ready') === 'True')
     : null;
 
   return (

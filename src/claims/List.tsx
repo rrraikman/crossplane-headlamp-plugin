@@ -9,7 +9,7 @@ import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CompositeResourceDefinition } from '../resources';
-import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
+import { age, debugMessage, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
 import { ClaimRow, sortByReady } from './List.utils';
 
 export function ClaimList() {
@@ -48,9 +48,6 @@ export function ClaimList() {
           .then((data: any) =>
             (data.items ?? []).map((item: any): ClaimRow => {
               const conditions: any[] = item.status?.conditions ?? [];
-              const failing = conditions.find(
-                (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
-              );
               return {
                 name: item.metadata.name,
                 namespace: item.metadata.namespace ?? '—',
@@ -60,7 +57,7 @@ export function ClaimList() {
                 plural,
                 ready: rawConditionStatus(conditions, 'Ready'),
                 synced: rawConditionStatus(conditions, 'Synced'),
-                message: failing?.message ?? null,
+                message: debugMessage(conditions),
                 creationTimestamp: item.metadata.creationTimestamp,
               };
             })

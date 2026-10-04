@@ -24,7 +24,7 @@ vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
   useFilterFunc: () => () => true,
 }));
 
-import { ConditionsTable } from './ConditionsTable';
+import { ConditionsTable, reasonColor } from './ConditionsTable';
 
 describe('ConditionsTable', () => {
   test('shows empty message when no conditions', () => {
@@ -50,5 +50,24 @@ describe('ConditionsTable', () => {
       { type: 'Synced', status: 'False', reason: 'ReconcileError', message: '' },
     ]} />);
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+});
+
+describe('reasonColor', () => {
+  test('returns success for True', () => {
+    expect(reasonColor('True')).toBe('success');
+  });
+
+  test('returns error for False', () => {
+    expect(reasonColor('False')).toBe('error');
+  });
+
+  test('returns warning for Unknown', () => {
+    expect(reasonColor('Unknown')).toBe('warning');
+  });
+
+  test('returns warning for any unrecognised value', () => {
+    expect(reasonColor('')).toBe('warning');
+    expect(reasonColor('Pending')).toBe('warning');
   });
 });
