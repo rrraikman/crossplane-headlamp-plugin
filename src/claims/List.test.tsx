@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, test, vi } from 'vitest';
-import { mockedHook } from '../testing';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
+import { mockedHook, mockListsByPlural } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -36,11 +37,8 @@ vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
   useFilterFunc: () => () => true,
 }));
 
-import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { CompositeResourceDefinition } from '../resources';
 import { ClaimList } from './List';
-
-const mockRequest = vi.mocked(request);
 
 function makeXRD(name: string, claimKind = 'Database', claimPlural = 'databases') {
   return {
@@ -57,6 +55,10 @@ function makeXRD(name: string, claimKind = 'Database', claimPlural = 'databases'
 }
 
 describe('ClaimList', () => {
+  beforeEach(() => {
+    mockListsByPlural(KubeObject.useList, {});
+  });
+
   test('shows loader while XRDs are loading', () => {
     mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
     render(<ClaimList />);
@@ -85,8 +87,8 @@ describe('ClaimList', () => {
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
-    mockRequest.mockResolvedValueOnce({
-      items: [
+    mockListsByPlural(KubeObject.useList, {
+      databases: [
         {
           metadata: { name: 'my-db', namespace: 'default', creationTimestamp: '2024-01-01T00:00:00Z' },
           status: {
@@ -109,8 +111,8 @@ describe('ClaimList', () => {
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
-    mockRequest.mockResolvedValueOnce({
-      items: [
+    mockListsByPlural(KubeObject.useList, {
+      databases: [
         {
           metadata: { name: 'my-db', namespace: 'default', creationTimestamp: '2024-01-01T00:00:00Z' },
           status: {

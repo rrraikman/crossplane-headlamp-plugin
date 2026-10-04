@@ -382,7 +382,9 @@ For detail pages on user-defined CRDs (XRs, Claims, MRs), the `useDynamicKubeLis
 const [items, error] = useDynamicKubeList(group, version, plural, isNamespaced);
 ```
 
-This avoids both the GET-by-name 404 issue and the need for polling — the SDK handles the watch stream automatically. The hook accepts an optional `{ kind, namespace }` when the kind differs from the plural or you need namespace-scoped results.
+This avoids both the GET-by-name 404 issue and the need for polling — the SDK handles the watch stream automatically.
+
+For pages that list instances across **every** XRD (claims/composites lists, overview, XRD detail), use `useXRDInstanceLists(xrds, 'composite' | 'claim')` from `src/xrdInstances.tsx`. It renders one watcher component per XRD (hooks can't be called a variable number of times), so the caller must render the returned `watchers`; `lists` is `null` until every list has reported. In tests, stub the lists with `mockListsByPlural(KubeObject.useList, { <plural>: [...] })` from `src/testing.ts`. The hook accepts an optional `{ kind, namespace }` when the kind differs from the plural or you need namespace-scoped results.
 
 ### List Responses May Omit Spec
 

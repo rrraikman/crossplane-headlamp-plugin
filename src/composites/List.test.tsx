@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, test, vi } from 'vitest';
-import { mockedHook } from '../testing';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
+import { mockedHook, mockListsByPlural } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -36,7 +37,6 @@ vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
   useFilterFunc: () => () => true,
 }));
 
-import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { CompositeResourceDefinition } from '../resources';
 import { CompositeResourceList } from './List';
 
@@ -61,6 +61,10 @@ function makeXRItem(name: string) {
 }
 
 describe('CompositeResourceList', () => {
+  beforeEach(() => {
+    mockListsByPlural(KubeObject.useList, {});
+  });
+
   test('shows loader while XRDs are loading', () => {
     mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
     render(<CompositeResourceList />);
@@ -80,7 +84,7 @@ describe('CompositeResourceList', () => {
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
-    vi.mocked(request).mockResolvedValue({ items: [makeXRItem('my-xdb')] });
+    mockListsByPlural(KubeObject.useList, { xdatabases: [makeXRItem('my-xdb')] });
     render(<CompositeResourceList />);
     await waitFor(() => {
       expect(screen.getByText('my-xdb')).toBeTruthy();
