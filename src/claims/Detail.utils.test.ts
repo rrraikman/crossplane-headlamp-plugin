@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { clearDiscoveryCache } from '../discovery';
 import { fetchFailingManagedResource, fetchXRData, fetchXRResourceRefs, resolveXRPlural } from './Detail.utils';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
@@ -7,6 +8,10 @@ vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 const mockRequest = vi.mocked(request);
+
+beforeEach(() => {
+  clearDiscoveryCache();
+});
 
 // ── resolveXRPlural ───────────────────────────────────────────────────────────
 
@@ -245,5 +250,27 @@ describe('fetchFailingManagedResource', () => {
         { apiVersion: 'aws.io/v1beta1', kind: 'RDSInstance', name: 'my-rds' },
       ])
     ).toBeNull();
+  });
+
+  test('fetches namespaced composed resources from the owner namespace and links with it', async () => {
+    mockRequest
+      .mockResolvedValueOnce({ resources: [{ kind: 'Stack', name: 'stacks', namespaced: true }] })
+      .mockResolvedValueOnce({
+        metadata: { name: 'ingress', namespace: 'prod' },
+        status: { conditions: [{ type: 'Synced', status: 'False' }] },
+      });
+
+    const result = await fetchFailingManagedResource(
+      [{ apiVersion: 'cf.aws.m.upbound.io/v1beta1', kind: 'Stack', name: 'ingress' }],
+      'prod'
+    );
+    expect(mockRequest).toHaveBeenLastCalledWith('/apis/cf.aws.m.upbound.io/v1beta1/namespaces/prod/stacks/ingress');
+    expect(result?.routeParams).toEqual({
+      group: 'cf.aws.m.upbound.io',
+      version: 'v1beta1',
+      plural: 'stacks',
+      name: 'ingress',
+      namespace: 'prod',
+    });
   });
 });

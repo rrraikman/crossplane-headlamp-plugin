@@ -5,39 +5,19 @@ import { Link as HeadlampLink } from '@kinvolk/headlamp-plugin/lib/CommonCompone
 import { Box, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { ConditionsTable } from '../components/ConditionsTable';
+import { detailRouteParams, parseApiVersion } from '../discovery';
 import { makeKubeObject } from '../hooks';
+import { fetchReferencedResources, ResourceRef, scopeRefs } from '../managed/ManagedResources.utils';
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { getReferenceableVersion } from '../utils';
 import { nodeStatus } from './mapSource.utils';
 
-function splitApiVersion(apiVersion: string): { group: string; version: string } {
-  const slash = apiVersion.indexOf('/');
-  return slash >= 0
-    ? { group: apiVersion.slice(0, slash), version: apiVersion.slice(slash + 1) }
-    : { group: '', version: apiVersion };
+function xrResourceRefs(xr: any): ResourceRef[] {
+  return scopeRefs(xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs, xr.metadata?.namespace);
 }
 
-// Cache plural lookups to avoid redundant discovery calls.
-const mrPluralCache = new Map<string, string>();
-
-async function resolveMRPlural(apiVersion: string, kind: string): Promise<string> {
-  const cacheKey = `${apiVersion}/${kind}`;
-  if (mrPluralCache.has(cacheKey)) return mrPluralCache.get(cacheKey)!;
-
-  const { group, version } = splitApiVersion(apiVersion);
-  const discoveryPath = group ? `/apis/${group}/${version}` : `/api/${version}`;
-
-  try {
-    const data = await request(discoveryPath);
-    const resource = (data.resources ?? []).find(
-      (r: any) => r.kind === kind && !r.name.includes('/')
-    );
-    const plural = resource?.name ?? kind.toLowerCase() + 's';
-    mrPluralCache.set(cacheKey, plural);
-    return plural;
-  } catch {
-    return kind.toLowerCase() + 's';
-  }
+function refKey(apiVersion: string, kind: string, namespace: string | undefined, name: string) {
+  return `${apiVersion}/${kind}/${namespace ?? ''}/${name}`;
 }
 
 function CompositionDetailsPanel({ node }: { node: any }) {
@@ -58,15 +38,18 @@ function CompositionDetailsPanel({ node }: { node: any }) {
 
 function XRDetailsPanel({ node }: { node: any }) {
   const name: string = node.kubeObject.metadata.name;
+  const namespace: string | undefined = node.kubeObject.metadata.namespace;
   const apiVersion: string = node.kubeObject.constructor.apiVersion ?? '';
   const plural: string = node.kubeObject.constructor.apiName ?? '';
-  const { group, version } = splitApiVersion(apiVersion);
   const conditions: any[] = node.kubeObject.jsonData?.status?.conditions ?? [];
   return (
     <Box p={2}>
       <Typography variant="h6" gutterBottom>{name}</Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>{node.subtitle}</Typography>
-      <HeadlampLink routeName="crossplane-composite-detail" params={{ group, version, plural, name }}>
+      <HeadlampLink
+        routeName="crossplane-composite-detail"
+        params={detailRouteParams(apiVersion, plural, name, namespace)}
+      >
         View full details
       </HeadlampLink>
       <Box mt={2}>
@@ -81,7 +64,7 @@ function ClaimDetailsPanel({ node }: { node: any }) {
   const namespace: string = node.kubeObject.metadata.namespace ?? '';
   const apiVersion: string = node.kubeObject.constructor.apiVersion ?? '';
   const plural: string = node.kubeObject.constructor.apiName ?? '';
-  const { group, version } = splitApiVersion(apiVersion);
+  const { group, version } = parseApiVersion(apiVersion);
   const conditions: any[] = node.kubeObject.jsonData?.status?.conditions ?? [];
   return (
     <Box p={2}>
@@ -102,17 +85,23 @@ function ClaimDetailsPanel({ node }: { node: any }) {
 
 function MRDetailsPanel({ node }: { node: any }) {
   const name: string = node.kubeObject.metadata.name;
+  const namespace: string | undefined = node.kubeObject.metadata.namespace;
   const apiVersion: string = node.kubeObject.constructor.apiVersion ?? '';
   const plural: string = node.kubeObject.constructor.apiName ?? '';
-  const { group, version } = splitApiVersion(apiVersion);
   const conditions: any[] = node.kubeObject.jsonData?.status?.conditions ?? [];
   return (
     <Box p={2}>
       <Typography variant="h6" gutterBottom>{name}</Typography>
       <Typography variant="body2" color="text.secondary" gutterBottom>{node.subtitle}</Typography>
-      <HeadlampLink routeName="crossplane-managed-detail" params={{ group, version, plural, name }}>
-        View full details
-      </HeadlampLink>
+      {/* Core kinds (e.g. a v1 Service) have no group, which the detail route requires. */}
+      {parseApiVersion(apiVersion).group && (
+        <HeadlampLink
+          routeName="crossplane-managed-detail"
+          params={detailRouteParams(apiVersion, plural, name, namespace)}
+        >
+          View full details
+        </HeadlampLink>
+      )}
       <Box mt={2}>
         <ConditionsTable conditions={conditions} />
       </Box>
@@ -192,57 +181,28 @@ function useCrossplaneGraphData() {
   // Derive a stable key from xrItems resource refs so the MR effect only re-runs when refs change.
   const xrRefsKey = useMemo(() => {
     if (!xrItems) return null;
-    return xrItems
-      .flatMap((xr: any) =>
-        (xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? []).map(
-          (ref: any) => `${ref.apiVersion}/${ref.kind}/${ref.name}`
-        )
-      )
-      .sort()
-      .join(',');
+    return JSON.stringify(
+      xrItems
+        .flatMap(xrResourceRefs)
+        .map(ref => refKey(ref.apiVersion, ref.kind, ref.namespace, ref.name))
+        .sort()
+    );
   }, [xrItems]);
 
   useEffect(() => {
     if (xrItems === null) return;
-    if (xrItems.length === 0) {
+    const refs = xrItems.flatMap(xrResourceRefs);
+    if (refs.length === 0) {
       setMrItems([]);
       return;
     }
-
-    // Collect all resource refs across all XRs, grouped by apiVersion+kind.
-    const groups = new Map<string, { apiVersion: string; kind: string; names: Set<string> }>();
-    for (const xr of xrItems) {
-      const refs: any[] = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
-      for (const ref of refs) {
-        const key = `${ref.apiVersion}/${ref.kind}`;
-        if (!groups.has(key)) {
-          groups.set(key, { apiVersion: ref.apiVersion, kind: ref.kind, names: new Set() });
-        }
-        groups.get(key)!.names.add(ref.name);
-      }
-    }
-
-    const fetchPromises = [...groups.values()].map(async ({ apiVersion, kind, names }) => {
-      const { group, version } = splitApiVersion(apiVersion);
-      const plural = await resolveMRPlural(apiVersion, kind);
-      const path = group ? `/apis/${group}/${version}/${plural}` : `/api/${version}/${plural}`;
-      try {
-        const data = await request(path);
-        return (data.items ?? [])
-          .filter((r: any) => names.has(r.metadata.name))
-          .map((r: any) => ({
-            ...r,
-            __plural: plural,
-            __group: group,
-            __version: version,
-            __kind: kind,
-          }));
-      } catch {
-        return [];
-      }
+    let cancelled = false;
+    fetchReferencedResources(refs).then(items => {
+      if (!cancelled) setMrItems(items);
     });
-
-    Promise.all(fetchPromises).then(results => setMrItems((results as any[][]).flat()));
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrRefsKey]);
 
@@ -307,7 +267,13 @@ function useCrossplaneGraphData() {
 
       const xrRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
       if (xrRef?.name && xrItems) {
-        const xr = xrItems.find((x: any) => x.metadata.name === xrRef.name);
+        const refGroup = parseApiVersion(xrRef.apiVersion ?? '').group;
+        const xr = xrItems.find(
+          (x: any) =>
+            x.metadata.name === xrRef.name &&
+            (!xrRef.kind || x.__kind === xrRef.kind) &&
+            (!refGroup || parseApiVersion(x.__apiVersion).group === refGroup)
+        );
         if (xr?.metadata?.uid) {
           edges.push({
             id: `claim-xr-${uid}-${xr.metadata.uid}`,
@@ -318,12 +284,10 @@ function useCrossplaneGraphData() {
       }
     }
 
-    // Build a lookup keyed by apiVersion/kind/name to handle MRs with the same name but different types.
     const mrByRef = new Map<string, any>();
     for (const mr of mrItems ?? []) {
       if (mr.metadata?.name) {
-        const key = `${mr.__group}/${mr.__version}/${mr.__kind}/${mr.metadata.name}`;
-        mrByRef.set(key, mr);
+        mrByRef.set(refKey(mr.__apiVersion, mr.__kind, mr.metadata.namespace, mr.metadata.name), mr);
       }
     }
 
@@ -335,13 +299,13 @@ function useCrossplaneGraphData() {
       nodes.push({
         id: uid,
         label: mr.metadata.name,
-        subtitle: `${mr.__kind} · ${mr.__group}/${mr.__version}`,
+        subtitle: `${mr.__kind} · ${mr.__apiVersion}`,
         kubeObject: makeKubeObject(
           mr,
           mr.__kind,
           mr.__plural,
-          `${mr.__group}/${mr.__version}`,
-          false
+          mr.__apiVersion,
+          !!mr.metadata.namespace
         ),
         detailsComponent: MRDetailsPanel,
         status: nodeStatus(mr.status?.conditions ?? []),
@@ -349,16 +313,16 @@ function useCrossplaneGraphData() {
       });
     }
 
-    // XR→MR edges
+    // XR→MR edges. Cluster-scoped composed resources have no namespace even
+    // when the owning XR is namespaced, so fall back to a namespace-less key.
     for (const xr of xrItems ?? []) {
       const xrUid = xr.metadata?.uid;
       if (!xrUid) continue;
 
-      const refs: any[] = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
-      for (const ref of refs) {
-        const { group: refGroup, version: refVersion } = splitApiVersion(ref.apiVersion ?? '');
-        const key = `${refGroup}/${refVersion}/${ref.kind}/${ref.name}`;
-        const mr = mrByRef.get(key);
+      for (const ref of xrResourceRefs(xr)) {
+        const mr =
+          mrByRef.get(refKey(ref.apiVersion, ref.kind, ref.namespace, ref.name)) ??
+          mrByRef.get(refKey(ref.apiVersion, ref.kind, undefined, ref.name));
         if (mr?.metadata?.uid) {
           edges.push({
             id: `xr-mr-${xrUid}-${mr.metadata.uid}`,

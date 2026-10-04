@@ -9,6 +9,7 @@ import {
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box } from '@mui/material';
 import { useParams } from 'react-router-dom';
+import { detailRouteParams } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
 import { age, rawConditionStatus, StatusChip } from '../utils';
 
@@ -34,6 +35,7 @@ export function ManagedResourceTypeList() {
   if (!mrs && !error) return <Loader title={`Loading ${kind} resources...`} />;
 
   const rows = sortByReady(mrs ?? []);
+  const anyNamespaced = rows.some(r => r.metadata.namespace);
 
   return (
     <Box pb={6}>
@@ -51,13 +53,21 @@ export function ManagedResourceTypeList() {
       <SectionBox title={`Instances (${rows.length})`}>
         <Table
           columns={[
+            ...(anyNamespaced
+              ? [{ header: 'Namespace', accessorFn: (r: any) => r.metadata.namespace ?? '—' }]
+              : []),
             {
               header: 'Name',
               accessorFn: (r: any) => r.metadata.name,
               Cell: ({ row }: any) => (
                 <HeadlampLink
                   routeName="crossplane-managed-detail"
-                  params={{ group, version, plural, name: row.original.metadata.name }}
+                  params={detailRouteParams(
+                    `${group}/${version}`,
+                    plural!,
+                    row.original.metadata.name,
+                    row.original.metadata.namespace
+                  )}
                 >
                   {row.original.metadata.name}
                 </HeadlampLink>

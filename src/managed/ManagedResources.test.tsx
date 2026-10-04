@@ -23,7 +23,9 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
           ))}
     </>
   ),
-  Link: ({ children }: any) => <span data-testid="link">{children}</span>,
+  Link: ({ children, params }: any) => (
+    <span data-testid="link" data-params={JSON.stringify(params)}>{children}</span>
+  ),
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
@@ -31,6 +33,7 @@ vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
 }));
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
+import { clearDiscoveryCache } from '../discovery';
 import { ManagedResources } from './ManagedResources';
 
 describe('ManagedResources', () => {
@@ -87,5 +90,35 @@ describe('ManagedResources', () => {
       expect(screen.getByText('my-cm')).toBeTruthy();
     });
     expect(screen.queryByTestId('link')).toBeNull();
+  });
+
+  test('only shows composed resources from the owning XR namespace and links with that namespace', async () => {
+    clearDiscoveryCache();
+    vi.mocked(request).mockImplementation((path: string) => {
+      if (path === '/apis/cloudformation.aws.m.upbound.io/v1beta1') {
+        return Promise.resolve({ resources: [{ kind: 'Stack', name: 'stacks', namespaced: true }] });
+      }
+      return Promise.resolve({
+        items: [
+          { metadata: { name: 'ingress', namespace: 'prod', creationTimestamp: '2024-01-01T00:00:00Z' } },
+          { metadata: { name: 'ingress', namespace: 'staging', creationTimestamp: '2024-01-01T00:00:00Z' } },
+        ],
+      });
+    });
+    render(
+      <ManagedResources
+        namespace="prod"
+        resourceRefs={[{ apiVersion: 'cloudformation.aws.m.upbound.io/v1beta1', kind: 'Stack', name: 'ingress' }]}
+      />
+    );
+    await waitFor(() => expect(screen.getByText('Managed Resources (1)')).toBeTruthy());
+    expect(request).toHaveBeenCalledWith('/apis/cloudformation.aws.m.upbound.io/v1beta1/namespaces/prod/stacks');
+    expect(JSON.parse(screen.getByTestId('link').getAttribute('data-params')!)).toEqual({
+      group: 'cloudformation.aws.m.upbound.io',
+      version: 'v1beta1',
+      plural: 'stacks',
+      name: 'ingress',
+      namespace: 'prod',
+    });
   });
 });

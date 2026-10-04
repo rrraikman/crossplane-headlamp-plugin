@@ -120,7 +120,7 @@ registerRoute({
 });
 
 registerRoute({
-  path: '/crossplane/composite/:group/:version/:plural/:name',
+  path: '/crossplane/composite/:group/:version/:plural/:namespace?/:name',
   sidebar: 'crossplane-composites',
   component: () => <CompositeDetail />,
   name: 'crossplane-composite-detail',
@@ -142,7 +142,7 @@ registerRoute({
 });
 
 registerRoute({
-  path: '/crossplane/managed/:group/:version/:plural/:name',
+  path: '/crossplane/managed/:group/:version/:plural/:namespace?/:name',
   sidebar: 'crossplane-managed-resources',
   component: () => <ManagedResourceDetail />,
   name: 'crossplane-managed-detail',

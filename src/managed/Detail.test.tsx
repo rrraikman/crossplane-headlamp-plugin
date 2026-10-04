@@ -39,6 +39,8 @@ vi.mock('@iconify/react', () => ({
   Icon: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
 }));
 
+import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
+import { useParams } from 'react-router-dom';
 import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
 import { ManagedResourceDetail } from './Detail';
 
@@ -96,5 +98,23 @@ describe('ManagedResourceDetail', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
+  });
+
+  test('loads a namespaced MR through a namespaced class and fetches its spec from the namespaced path', () => {
+    vi.mocked(useParams).mockReturnValueOnce({
+      group: 'nopesql.crossplane.io',
+      version: 'v1alpha1',
+      plural: 'nosqldbs',
+      namespace: 'prod',
+      name: 'my-db',
+    });
+    vi.mocked(KubeObject.useList).mockClear();
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    render(<ManagedResourceDetail />);
+    expect(KubeObject.useList).toHaveBeenCalledWith({ namespace: 'prod' });
+    expect((vi.mocked(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(true);
+    expect(request).toHaveBeenCalledWith(
+      '/apis/nopesql.crossplane.io/v1alpha1/namespaces/prod/nosqldbs/my-db'
+    );
   });
 });

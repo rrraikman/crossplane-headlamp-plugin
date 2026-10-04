@@ -8,6 +8,7 @@ import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Paper, Tooltip, Typography, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
+import { detailRouteParams } from './discovery';
 import {
   collectNotReady,
   countReady,
@@ -221,10 +222,17 @@ export function CrossplaneOverview() {
                 return {
                   ...entry,
                   kind,
-                  name: item.metadata.name,
+                  name: item.metadata.namespace
+                    ? `${item.metadata.namespace}/${item.metadata.name}`
+                    : item.metadata.name,
                   detailRoute: {
                     routeName: 'crossplane-composite-detail',
-                    params: { group, version, plural, name: item.metadata.name },
+                    params: detailRouteParams(
+                      `${group}/${version}`,
+                      plural,
+                      item.metadata.name,
+                      item.metadata.namespace
+                    ),
                   },
                 };
               });
