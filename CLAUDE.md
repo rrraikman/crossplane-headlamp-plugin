@@ -12,11 +12,15 @@ This file provides guidance for AI coding agents working on this Headlamp plugin
 
 Branch protection and required CI checks are enforced on `main`.
 
+The repo is **squash-merge only**, so a PR's title becomes the commit on `main` that Release Please reads — it must be a Conventional Commit line. One logical change per PR keeps one changelog entry per change.
+
+For stacked PRs (`gh stack`), CI (`on-pull-request.yml`) only runs for PRs whose base is `main`; upper layers get CI once they're retargeted after the layers below merge. Run the Pre-PR Checklist locally on every layer.
+
 ## Available Scripts
 
 The following npm scripts are available for development and testing:
 
-- **`npm run format`** - Format code with prettier
+- **`npm run format`** - Format code with prettier. **Don't run it repo-wide** — the existing code isn't prettier-formatted, so it rewrites unrelated lines in every file. Match the surrounding style by hand instead.
 - **`npm run lint`** - Lint code with eslint for coding issues
 - **`npm run lint-fix`** - Automatically fix linting issues
 - **`npm run build`** - Build the plugin for production
@@ -140,9 +144,8 @@ Check out production-ready plugins in `node_modules/@kinvolk/headlamp-plugin/off
 2. **Make Changes:** Edit files in `src/`
 3. **Type Check:** Run `npm run tsc` to check for TypeScript errors
 4. **Lint:** Run `npm run lint` to check for code quality issues
-5. **Format:** Run `npm run format` to format code
-6. **Test:** Run `npm run test` to run tests
-7. **Build:** Run `npm run build` to create production build
+5. **Test:** Run `npm run test` to run tests (or `npx vitest run src/<dir>` while iterating)
+6. **Build:** Run `npm run build` to create production build
 
 ## Pre-PR Checklist
 
@@ -153,6 +156,8 @@ npm run lint-fix   # auto-fix import order and style issues
 npm run tsc        # must produce zero errors
 npm run test -- --coverage   # all tests pass AND coverage thresholds are met
 ```
+
+Tests are capped at 2 workers in `vitest.config.ts` because each jsdom worker can use several GB. Don't raise `--maxWorkers`, don't start overlapping runs, and don't pipe a test run into `head`/`grep -m` — the run keeps going after the pipe closes. Redirect output to a file and read it instead.
 
 Coverage thresholds (defined in `vitest.config.ts`) are enforced by CI:
 
@@ -185,11 +190,13 @@ Place test files **inline next to the source file** they cover (e.g. `utils.test
 
 ### What to test
 
-Only pure logic functions are practical to unit test. React components and files that import `@kinvolk/headlamp-plugin/lib/k8s/cluster` (i.e. anything using `KubeObject` subclasses) cannot be imported in tests because that path has no resolvable JS file at runtime — Vite's transform stage rejects it before any `vi.mock` can intercept it.
+Components can be rendered in tests, including ones that use `KubeObject`: `vitest.config.ts` aliases `@kinvolk/headlamp-plugin/lib/k8s/cluster` to `src/__mocks__/headlamp-k8s-cluster.ts`, whose `KubeObject` has `vi.fn()` `useList`/`useGet` shared by every subclass. The detail-page tests (`src/composites/Detail.test.tsx` etc.) render real components this way.
 
-**Practical rule:** if a file's only imports are from `./utils`, `@mui/material`, or other packages that are physically present in `node_modules`, it can be tested directly. If it imports from `./resources` or any other file that transitively pulls in `@kinvolk/headlamp-plugin/lib/k8s/cluster`, extract the pure logic into a separate file with no such dependency before writing tests.
+- **Dynamic classes** (from `useDynamicKubeList`/`makeKubeObject`) all hit that shared mock. Use `mockListsByPlural(KubeObject.useList, { <plural>: [...] })` from `src/testing.ts` to answer per class, and `mock.contexts[n].isNamespaced` to assert how a class was scoped.
+- **Mocked `useList` results must keep stable references across calls.** The real hook does (TanStack Query structurally shares results); a mock returning a fresh array each call makes any effect that depends on the items loop forever. `mockListsByPlural` builds its results once for this reason.
+- **Module-level caches persist across tests in a file** (e.g. the discovery cache): call `clearDiscoveryCache()` in `beforeEach`.
 
-**Example:** `overview.tsx` had untestable dependencies, so its pure logic functions (`countReady`, `resolveDetailRoute`, `collectNotReady`) were extracted into `overview.utils.ts` which has no `KubeObject` dependency and can be tested directly.
+Pure logic still belongs in `*.utils.ts` files where practical — it's the cheapest thing to test — but you don't need to extract it just to make a component testable.
 
 ### Test file conventions
 
@@ -220,6 +227,25 @@ Common types and their effect on versioning:
 Append `!` (e.g. `feat!:`) or add `BREAKING CHANGE:` in the footer for a **major** bump.
 
 Releases are automated via Release Please: it opens a PR on every push to `main`, bumps `package.json`, and maintains `CHANGELOG.md`. Merging the release PR triggers the build and publish workflow.
+
+## Checking Changes in a Real Headlamp
+
+Unit tests mock the SDK, so verify UI-affecting changes in a running Headlamp without touching the user's installed plugin or kubeconfig: run the desktop app's bundled server against scratch copies.
+
+```sh
+SCRATCH=<scratch dir>
+npm run build
+mkdir -p $SCRATCH/plugins/crossplane-headlamp-plugin
+cp dist/main.js package.json $SCRATCH/plugins/crossplane-headlamp-plugin/
+kubectl config view --minify --flatten --context <ctx> > $SCRATCH/kubeconfig
+/Applications/Headlamp.app/Contents/Resources/headlamp-server \
+  -listen-addr 127.0.0.1 -port 4477 \
+  -html-static-dir /Applications/Headlamp.app/Contents/Resources/frontend \
+  -plugins-dir $SCRATCH/plugins -kubeconfig $SCRATCH/kubeconfig
+# then open http://127.0.0.1:4477/c/<context>/crossplane/overview
+```
+
+Pass `--context` explicitly rather than relying on the current context, which can change underneath you. Anything that writes to the cluster (e.g. the Reconcile button) needs the user's go-ahead; to check the request without sending it, wrap `window.fetch` in the page to record PATCH calls and return a stub response.
 
 ## Best Practices
 
@@ -311,6 +337,10 @@ To place a status chip inline with a section title (without shrinking the headin
 
 **Do not name KubeObject subclasses after JS built-ins.** `export class Function extends KubeObject` shadows the global `Function` constructor and crashes the entire plugin module at load time with no useful error message. Use a prefixed name like `CrossplaneFunction` instead.
 
+**`useGet` returns `[null, error]` on 404/403.** Check the error before showing a loader (`if (error) return <LoadError …/>`), otherwise a missing or forbidden resource spins forever.
+
+**`useGet('')` lists and watches the whole collection.** The SDK drops the empty name from the URL. Hooks can't be called conditionally, so when the name may be unknown (e.g. `status.currentRevision`), mount a child component that calls `useGet` only once the name exists — see `PackageRevisionSection`.
+
 **Do not import from `@mui/icons-material`.** It pulls in `createSvgIcon` via `@mui/material/utils`, which is not in Headlamp's Vite externals list. The import resolves to `undefined` at runtime and crashes the plugin. Use `@iconify/react` for all icons:
 
 ```tsx
@@ -320,10 +350,12 @@ import { Icon } from '@iconify/react';
 
 ### Discovering Managed Resource Types
 
-Two approaches, used together as a fallback chain (see `src/managed/List.tsx`):
+Two approaches, used together as a fallback chain (`fetchManagedResourceCRDs` in `src/managed/List.utils.ts`):
 
 1. **Label selector** — fast, server-side: `GET /apis/apiextensions.k8s.io/v1/customresourcedefinitions?labelSelector=crossplane.io%2Fresource%3Dmanaged`
 2. **Category filter** — fallback for older providers that don't set the label: fetch all CRDs and filter where `spec.names.categories` includes `'managed'`
+
+Provider families install hundreds of MR CRDs. Never fire one full LIST per CRD: count with `countInstances` (`?limit=1` + `metadata.remainingItemCount`), only list types that have instances, and fan out through `mapWithConcurrency`.
 
 ### Condition Helpers
 
@@ -333,6 +365,13 @@ Two helpers exist for checking conditions depending on the data shape:
 - `rawConditionStatus(conditions, type)` — for raw API response JSON (accesses `.status.conditions` directly)
 
 Both return `'True'`, `'False'`, or `'Unknown'`. The `StatusChip` component renders green/red/yellow accordingly.
+
+For Ready/Synced logic on raw conditions, use the shared helpers in `src/utils.tsx` instead of re-inlining `c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')`:
+
+- `isHealthy(conditions)` — Ready and Synced both `True` (a missing condition counts as unhealthy)
+- `failingCondition(conditions)` — the failing Synced condition, else the failing Ready one (for reason/type)
+- `debugMessage(conditions)` — the most actionable failure message, Synced first
+- `sortFailingFirst(items, isOk, tiebreak?)` — stable failing-first sort for tables
 
 ### Conditions That May Be Legitimately Absent (Crossplane v1)
 

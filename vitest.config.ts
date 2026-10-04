@@ -16,6 +16,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: 'src/setupTests.ts',
+    // Each jsdom worker (more with coverage) can take several GB; the default
+    // pool of one per core exhausted a 16 GB dev machine.
+    maxWorkers: 2,
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'lcov'],
