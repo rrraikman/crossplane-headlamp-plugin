@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.12.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.11.0...crossplane-headlamp-plugin-v1.12.0) (2026-10-04)
+
+
+### Features
+
+* consistent search and filtering across all tables ([#93](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/93)) ([be22d7d](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/be22d7d3e6ab32f72973c2ceebaf0c76f52457f8))
+* live-update claims, composite resources and overview instance data ([#90](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/90)) ([cac3197](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/cac3197b8a0910faa4f8aeb97ad79ce51b15934c))
+
+
+### Bug Fixes
+
+* error states, revision lookup and other detail-page edge cases ([#86](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/86)) ([b179ada](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/b179ada4ea1d5527aef357dbad3b70dcf73570cc))
+* support namespaced XRs and managed resources (Crossplane v2) ([#85](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/85)) ([aa145b6](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/aa145b680cbc75174b8496b6c5feaf9e3badafc8))
+
+
+### Performance Improvements
+
+* count managed resources without listing every CRD's objects ([#87](https://github.com/rrraikman/crossplane-headlamp-plugin/issues/87)) ([3741fd5](https://github.com/rrraikman/crossplane-headlamp-plugin/commit/3741fd5fc823e4640f94f4c0690587ddc837a62d))
+
 ## [1.11.0](https://github.com/rrraikman/crossplane-headlamp-plugin/compare/crossplane-headlamp-plugin-v1.10.1...crossplane-headlamp-plugin-v1.11.0) (2026-08-07)
 
 
