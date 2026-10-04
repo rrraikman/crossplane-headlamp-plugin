@@ -11,18 +11,20 @@ import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { ReconcileButton } from '../components/ReconcileButton';
+import { resourcePath } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
 export function ManagedResourceDetail() {
-  const { group, version, plural, name } = useParams<{
+  const { group, version, plural, namespace, name } = useParams<{
     group: string;
     version: string;
     plural: string;
+    namespace?: string;
     name: string;
   }>();
 
-  const [mrs, error] = useDynamicKubeList(group, version, plural, false);
+  const [mrs, error] = useDynamicKubeList(group, version, plural, !!namespace, { namespace });
   const mrResource = useMemo(
     () => mrs?.find(r => r.metadata.name === name) ?? null,
     [mrs, name]
@@ -33,17 +35,18 @@ export function ManagedResourceDetail() {
   const [spec, setSpec] = useState<any>(undefined);
   useEffect(() => {
     setSpec(undefined);
-    request(`/apis/${group}/${version}/${plural}/${name}`)
+    const apiVersion = `${group}/${version}`;
+    request(resourcePath(apiVersion, plural, { namespace, name }))
       .then((data: any) => setSpec(data.spec ?? null))
       .catch(() =>
-        request(`/apis/${group}/${version}/${plural}`)
+        request(resourcePath(apiVersion, plural, { namespace }))
           .then((data: any) => {
             const found = (data.items ?? []).find((r: any) => r.metadata.name === name);
             setSpec(found?.spec ?? null);
           })
           .catch(() => setSpec(null))
       );
-  }, [group, version, plural, name]);
+  }, [group, version, plural, namespace, name]);
 
   if (!mrs && !error) return <Loader title="Loading..." />;
 
@@ -53,7 +56,7 @@ export function ManagedResourceDetail() {
         <BackLink />
         <Box p={2}>
           <Alert severity="error">
-            Failed to load <strong>{plural}/{name}</strong>
+            Failed to load <strong>{plural}/{namespace ? `${namespace}/` : ''}{name}</strong>
             {error && `: ${error.message}`}
           </Alert>
         </Box>
@@ -100,6 +103,7 @@ export function ManagedResourceDetail() {
         <NameValueTable
           rows={[
             { name: 'Kind', value: mr.kind },
+            { name: 'Namespace', value: namespace, hide: !namespace },
             { name: 'API Version', value: mr.apiVersion },
             { name: 'Age', value: age(mr.metadata.creationTimestamp) },
           ]}
@@ -110,7 +114,7 @@ export function ManagedResourceDetail() {
         <ConditionsTable conditions={conditions} />
       </SectionBox>
 
-      <EventsTable resourceName={name} resourceKind={mr.kind} />
+      <EventsTable resourceName={name} resourceKind={mr.kind} namespace={namespace} />
 
       {spec && (
         <SectionBox title="Spec">

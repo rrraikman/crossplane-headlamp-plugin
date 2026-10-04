@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({ request: vi.fn() }));
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
-import { debugMessage, resolvePlural } from './ManagedResources.utils';
+import { clearDiscoveryCache } from '../discovery';
+import { debugMessage, fetchReferencedResources, refMatches, scopeRefs } from './ManagedResources.utils';
 
 const mockRequest = vi.mocked(request);
 
@@ -59,67 +60,117 @@ describe('debugMessage', () => {
   });
 });
 
-// ── resolvePlural ─────────────────────────────────────────────────────────────
+// ── scopeRefs ────────────────────────────────────────────────────────────────
 
-describe('resolvePlural', () => {
+describe('scopeRefs', () => {
+  test('assigns the owner namespace to refs without one', () => {
+    const refs = [{ apiVersion: 'apps/v1', kind: 'Deployment', name: 'web' }];
+    expect(scopeRefs(refs, 'prod')).toEqual([{ ...refs[0], namespace: 'prod' }]);
+  });
+
+  test('keeps an explicit ref namespace over the owner namespace', () => {
+    const refs = [{ apiVersion: 'apps/v1', kind: 'Deployment', name: 'web', namespace: 'other' }];
+    expect(scopeRefs(refs, 'prod')[0].namespace).toBe('other');
+  });
+
+  test('drops refs missing apiVersion, kind or name', () => {
+    expect(scopeRefs([{ apiVersion: '', kind: 'X', name: 'a' }, null as any], 'prod')).toEqual([]);
+  });
+
+  test('returns an empty array for undefined refs', () => {
+    expect(scopeRefs(undefined)).toEqual([]);
+  });
+});
+
+// ── refMatches ───────────────────────────────────────────────────────────────
+
+describe('refMatches', () => {
+  const ref = { apiVersion: 'apps/v1', kind: 'Deployment', name: 'web', namespace: 'prod' };
+  const item = (name: string, namespace?: string) => ({ metadata: { name, namespace } });
+
+  test('matches same name and namespace', () => {
+    expect(refMatches(ref, item('web', 'prod'), true)).toBe(true);
+  });
+
+  test('rejects a same-named resource in another namespace', () => {
+    expect(refMatches(ref, item('web', 'staging'), true)).toBe(false);
+  });
+
+  test('rejects a different name', () => {
+    expect(refMatches(ref, item('api', 'prod'), true)).toBe(false);
+  });
+
+  test('ignores namespace for cluster-scoped kinds', () => {
+    expect(refMatches(ref, item('web', 'staging'), false)).toBe(true);
+  });
+
+  test('matches by name when the ref has no namespace', () => {
+    expect(refMatches({ ...ref, namespace: undefined }, item('web', 'staging'), true)).toBe(true);
+  });
+});
+
+// ── fetchReferencedResources ─────────────────────────────────────────────────
+
+describe('fetchReferencedResources', () => {
   beforeEach(() => {
     mockRequest.mockReset();
+    clearDiscoveryCache();
   });
 
-  test('returns plural from discovery when a matching resource is found', async () => {
-    mockRequest.mockResolvedValueOnce({
-      resources: [
-        { kind: 'Bucket', name: 'buckets' },
-        { kind: 'Bucket', name: 'buckets/status' },
-      ],
+  test('lists namespaced kinds in the refs namespace and excludes other namespaces', async () => {
+    mockRequest.mockImplementation((path: string) => {
+      if (path === '/apis/apps/v1') {
+        return Promise.resolve({ resources: [{ kind: 'Deployment', name: 'deployments', namespaced: true }] });
+      }
+      return Promise.resolve({
+        items: [
+          { metadata: { name: 'web', namespace: 'prod' } },
+          { metadata: { name: 'web', namespace: 'staging' } },
+        ],
+      });
     });
-    const result = await resolvePlural('s3.aws.crossplane.io/v1beta1', 'Bucket');
-    expect(result).toBe('buckets');
-    expect(mockRequest).toHaveBeenCalledWith('/apis/s3.aws.crossplane.io/v1beta1');
-  });
-
-  test('skips subresources containing a slash when matching', async () => {
-    mockRequest.mockResolvedValueOnce({
-      resources: [
-        { kind: 'Table', name: 'tables/status' },
-        { kind: 'Table', name: 'tables' },
-      ],
+    const items = await fetchReferencedResources([
+      { apiVersion: 'apps/v1', kind: 'Deployment', name: 'web', namespace: 'prod' },
+    ]);
+    expect(mockRequest).toHaveBeenCalledWith('/apis/apps/v1/namespaces/prod/deployments');
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      metadata: { namespace: 'prod' },
+      __apiVersion: 'apps/v1',
+      __kind: 'Deployment',
+      __plural: 'deployments',
     });
-    const result = await resolvePlural('dynamo.aws.crossplane.io/v1alpha1', 'Table');
-    expect(result).toBe('tables');
   });
 
-  test('falls back to kind.toLowerCase()+"s" when discovery has no match', async () => {
-    mockRequest.mockResolvedValueOnce({ resources: [] });
-    const result = await resolvePlural('other.io/v1alpha2', 'RDSInstance');
-    expect(result).toBe('rdsinstances');
+  test('lists cluster-scoped kinds without a namespace segment', async () => {
+    mockRequest.mockImplementation((path: string) => {
+      if (path === '/apis/s3.aws.io/v1beta1') {
+        return Promise.resolve({ resources: [{ kind: 'Bucket', name: 'buckets', namespaced: false }] });
+      }
+      return Promise.resolve({ items: [{ metadata: { name: 'b' } }] });
+    });
+    const items = await fetchReferencedResources([
+      { apiVersion: 's3.aws.io/v1beta1', kind: 'Bucket', name: 'b', namespace: 'prod' },
+    ]);
+    expect(mockRequest).toHaveBeenCalledWith('/apis/s3.aws.io/v1beta1/buckets');
+    expect(items).toHaveLength(1);
   });
 
-  test('falls back to kind.toLowerCase()+"s" when request throws', async () => {
-    mockRequest.mockRejectedValueOnce(new Error('network error'));
-    const result = await resolvePlural('failing.io/v1', 'Widget');
-    expect(result).toBe('widgets');
+  test('uses the core /api path for groupless kinds', async () => {
+    mockRequest.mockImplementation((path: string) => {
+      if (path === '/api/v1') {
+        return Promise.resolve({ resources: [{ kind: 'Service', name: 'services', namespaced: true }] });
+      }
+      return Promise.resolve({ items: [{ metadata: { name: 'web', namespace: 'prod' } }] });
+    });
+    await fetchReferencedResources([{ apiVersion: 'v1', kind: 'Service', name: 'web', namespace: 'prod' }]);
+    expect(mockRequest).toHaveBeenCalledWith('/api/v1/namespaces/prod/services');
   });
 
-  test('uses /apis/group/version path for versioned apiVersions', async () => {
-    mockRequest.mockResolvedValueOnce({ resources: [{ kind: 'Repo', name: 'repos' }] });
-    await resolvePlural('git.io/v1', 'Repo');
-    expect(mockRequest).toHaveBeenCalledWith('/apis/git.io/v1');
-  });
-
-  test('uses /api/version path for core API (no slash in apiVersion)', async () => {
-    mockRequest.mockResolvedValueOnce({ resources: [{ kind: 'Pod', name: 'pods' }] });
-    await resolvePlural('v1', 'Pod');
-    expect(mockRequest).toHaveBeenCalledWith('/api/v1');
-  });
-
-  test('returns cached result on second call with same apiVersion+kind', async () => {
-    mockRequest.mockResolvedValueOnce({ resources: [{ kind: 'Queue', name: 'queues' }] });
-    const first = await resolvePlural('sqs.unique.io/v1', 'Queue');
-    const second = await resolvePlural('sqs.unique.io/v1', 'Queue');
-    expect(first).toBe('queues');
-    expect(second).toBe('queues');
-    // Only one network call — second was served from cache
-    expect(mockRequest).toHaveBeenCalledTimes(1);
+  test('returns an empty list for a kind whose list request fails', async () => {
+    mockRequest.mockImplementation((path: string) =>
+      path === '/apis/x.io/v1' ? Promise.resolve({ resources: [] }) : Promise.reject(new Error('403'))
+    );
+    expect(await fetchReferencedResources([{ apiVersion: 'x.io/v1', kind: 'Thing', name: 't' }])).toEqual([]);
   });
 });

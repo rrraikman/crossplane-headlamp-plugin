@@ -17,14 +17,15 @@ import { ManagedResources } from '../managed/ManagedResources';
 import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
 export function CompositeDetail() {
-  const { group, version, plural, name } = useParams<{
+  const { group, version, plural, namespace, name } = useParams<{
     group: string;
     version: string;
     plural: string;
+    namespace?: string;
     name: string;
   }>();
 
-  const [xrs, error] = useDynamicKubeList(group, version, plural, false);
+  const [xrs, error] = useDynamicKubeList(group, version, plural, !!namespace, { namespace });
   const xrResource = useMemo(
     () => xrs?.find(r => r.metadata.name === name) ?? null,
     [xrs, name]
@@ -41,8 +42,8 @@ export function CompositeDetail() {
     );
     if (!failing) return;
     const resourceRefs = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
-    fetchFailingManagedResource(resourceRefs).then(setFailingResource);
-  }, [xr]);
+    fetchFailingManagedResource(resourceRefs, namespace).then(setFailingResource);
+  }, [xr, namespace]);
 
   if (!xrs && !error) return <Loader title="Loading..." />;
 
@@ -52,7 +53,7 @@ export function CompositeDetail() {
         <BackLink />
         <Box p={2}>
           <Alert severity="error">
-            Failed to load <strong>{plural}/{name}</strong>
+            Failed to load <strong>{plural}/{namespace ? `${namespace}/` : ''}{name}</strong>
             {error && `: ${error.message}`}
           </Alert>
         </Box>
@@ -118,6 +119,7 @@ export function CompositeDetail() {
         <NameValueTable
           rows={[
             { name: 'Kind', value: xr.kind },
+            { name: 'Namespace', value: namespace, hide: !namespace },
             { name: 'API Version', value: xr.apiVersion },
             {
               name: 'Composition',
@@ -156,9 +158,12 @@ export function CompositeDetail() {
         <ConditionsTable conditions={conditions} />
       </SectionBox>
 
-      <EventsTable resourceName={name} resourceKind={xr.kind} />
+      <EventsTable resourceName={name} resourceKind={xr.kind} namespace={namespace} />
 
-      <ManagedResources resourceRefs={xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs} />
+      <ManagedResources
+        resourceRefs={xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs}
+        namespace={namespace}
+      />
     </Box>
   );
 }

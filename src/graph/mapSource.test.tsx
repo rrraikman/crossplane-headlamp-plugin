@@ -152,7 +152,7 @@ describe('useCrossplaneGraphData', () => {
     };
     const claimItem = {
       metadata: { uid: 'claim-uid', name: 'my-claim', namespace: 'default' },
-      spec: { resourceRef: { name: 'my-xr' } },
+      spec: { resourceRef: { apiVersion: 'example.io/v1alpha1', kind: 'XDatabase', name: 'my-xr' } },
       status: {
         conditions: [
           { type: 'Ready', status: 'True' },
@@ -201,5 +201,63 @@ describe('useCrossplaneGraphData', () => {
 
     const edge = result.current.edges.find((e: any) => e.source === 'xr-uid');
     expect(edge?.target).toBe('comp-uid');
+  });
+
+  test('links a claim to the XR of its referenced kind when XRs of different kinds share a name', async () => {
+    const dbXrd = makeXRD('xdatabases.example.io', 'XDatabase', 'xdatabases', {
+      kind: 'Database',
+      plural: 'databases',
+    });
+    const cacheXrd = makeXRD('xcaches.example.io', 'XCache', 'xcaches', null);
+    const dbXr = { metadata: { uid: 'db-xr', name: 'shared' }, spec: {}, status: { conditions: [] } };
+    const cacheXr = { metadata: { uid: 'cache-xr', name: 'shared' }, spec: {}, status: { conditions: [] } };
+    const claim = {
+      metadata: { uid: 'claim-uid', name: 'c', namespace: 'default' },
+      spec: { resourceRef: { apiVersion: 'example.io/v1alpha1', kind: 'XDatabase', name: 'shared' } },
+      status: { conditions: [] },
+    };
+
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[cacheXrd, dbXrd], null]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    vi.mocked(request).mockImplementation((path: string) => {
+      if (path.endsWith('/xcaches')) return Promise.resolve({ items: [cacheXr] });
+      if (path.endsWith('/xdatabases')) return Promise.resolve({ items: [dbXr] });
+      if (path.endsWith('/databases')) return Promise.resolve({ items: [claim] });
+      return Promise.resolve({ items: [] });
+    });
+
+    const { result } = renderHook(() => useData());
+    await waitFor(() =>
+      expect(result.current?.edges.some((e: any) => e.source === 'claim-uid')).toBe(true)
+    );
+    expect(result.current.edges.find((e: any) => e.source === 'claim-uid').target).toBe('db-xr');
+  });
+
+  test('links a namespaced XR only to composed resources in its own namespace', async () => {
+    const xrd = makeXRD('webservices.example.io', 'WebService', 'webservices', null);
+    const prodXr = {
+      metadata: { uid: 'prod-xr', name: 'web', namespace: 'prod' },
+      spec: { crossplane: { resourceRefs: [{ apiVersion: 'apps/v1', kind: 'Deployment', name: 'web' }] } },
+      status: { conditions: [] },
+    };
+
+    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    vi.mocked(request).mockImplementation((path: string) => {
+      if (path.endsWith('/webservices')) return Promise.resolve({ items: [prodXr] });
+      if (path === '/apis/apps/v1') {
+        return Promise.resolve({ resources: [{ kind: 'Deployment', name: 'deployments', namespaced: true }] });
+      }
+      if (path === '/apis/apps/v1/namespaces/prod/deployments') {
+        return Promise.resolve({ items: [{ metadata: { uid: 'prod-dep', name: 'web', namespace: 'prod' } }] });
+      }
+      return Promise.resolve({ items: [{ metadata: { uid: 'staging-dep', name: 'web', namespace: 'staging' } }] });
+    });
+
+    const { result } = renderHook(() => useData());
+    await waitFor(() =>
+      expect(result.current?.edges.some((e: any) => e.source === 'prod-xr' && e.target === 'prod-dep')).toBe(true)
+    );
+    expect(result.current.nodes.some((n: any) => n.id === 'staging-dep')).toBe(false);
   });
 });

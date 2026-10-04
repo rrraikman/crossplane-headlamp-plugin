@@ -1,94 +1,50 @@
-import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { Link as HeadlampLink, SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { detailRouteParams, parseApiVersion } from '../discovery';
 import { age, rawConditionStatus, StatusChip } from '../utils';
+import { debugMessage, fetchReferencedResources, ResourceRef, scopeRefs } from './ManagedResources.utils';
 
-interface ResourceRef {
-  apiVersion: string;
-  kind: string;
-  name: string;
+function detailParams(r: any): Record<string, string> | null {
+  const apiVersion = r.__apiVersion ?? r.apiVersion ?? '';
+  // Core/legacy resources (empty group, e.g. a raw Service) aren't routable
+  // via this CRD-shaped detail route.
+  if (!parseApiVersion(apiVersion).group) return null;
+  return detailRouteParams(
+    apiVersion,
+    r.__plural ?? (r.__kind ?? r.kind).toLowerCase() + 's',
+    r.metadata.name,
+    r.metadata.namespace
+  );
 }
 
-// Cache plural lookups so we don't repeat the same discovery call.
-const pluralCache = new Map<string, string>();
-
-// Core/legacy API resources (ConfigMap, Secret, Namespace, etc.) have no group
-// segment in their apiVersion (e.g. "v1" rather than "group/version").
-function parseApiVersion(apiVersion: string): { group: string; version: string } {
-  const slashIdx = apiVersion.lastIndexOf('/');
-  return slashIdx >= 0
-    ? { group: apiVersion.slice(0, slashIdx), version: apiVersion.slice(slashIdx + 1) }
-    : { group: '', version: apiVersion };
-}
-
-async function resolvePlural(apiVersion: string, kind: string): Promise<string> {
-  const cacheKey = `${apiVersion}/${kind}`;
-  if (pluralCache.has(cacheKey)) return pluralCache.get(cacheKey)!;
-
-  const { group, version } = parseApiVersion(apiVersion);
-  const discoveryPath = group ? `/apis/${group}/${version}` : `/api/${version}`;
-
-  try {
-    const data = await request(discoveryPath);
-    const resource = (data.resources ?? []).find(
-      (r: any) => r.kind === kind && !r.name.includes('/')
-    );
-    const plural = resource?.name ?? kind.toLowerCase() + 's';
-    pluralCache.set(cacheKey, plural);
-    return plural;
-  } catch {
-    return kind.toLowerCase() + 's';
-  }
-}
-
-async function fetchMRList(apiVersion: string, kind: string, names: Set<string>): Promise<any[]> {
-  const { group, version } = parseApiVersion(apiVersion);
-  const plural = await resolvePlural(apiVersion, kind);
-  const path = group
-    ? `/apis/${group}/${version}/${plural}`
-    : `/api/${version}/${plural}`;
-  try {
-    const data = await request(path);
-    return (data.items ?? [])
-      .filter((r: any) => names.has(r.metadata.name))
-      .map((r: any) => ({ ...r, __plural: plural }));
-  } catch {
-    return [];
-  }
-}
-
-function debugMessage(conditions: any[]): string | null {
-  const synced = conditions?.find((c: any) => c.type === 'Synced');
-  if (synced && synced.status !== 'True' && synced.message) return synced.message;
-  const ready = conditions?.find((c: any) => c.type === 'Ready');
-  if (ready && ready.status !== 'True' && ready.message) return ready.message;
-  return null;
-}
-
-export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[] | undefined }) {
+export function ManagedResources({
+  resourceRefs,
+  namespace,
+}: {
+  resourceRefs: ResourceRef[] | undefined;
+  namespace?: string;
+}) {
   const [mrs, setMrs] = useState<any[] | null>(null);
   const filterFunction = useFilterFunc();
 
+  const refsKey = JSON.stringify(scopeRefs(resourceRefs, namespace));
+  const scopedRefs = useMemo<ResourceRef[]>(() => JSON.parse(refsKey), [refsKey]);
+
   useEffect(() => {
-    if (!resourceRefs || resourceRefs.length === 0) {
+    if (scopedRefs.length === 0) {
       setMrs([]);
       return;
     }
-
-    // Group refs by apiVersion+kind so we do one list fetch per resource type.
-    const groups = new Map<string, { apiVersion: string; kind: string; names: Set<string> }>();
-    for (const ref of resourceRefs) {
-      const key = `${ref.apiVersion}/${ref.kind}`;
-      if (!groups.has(key)) groups.set(key, { apiVersion: ref.apiVersion, kind: ref.kind, names: new Set() });
-      groups.get(key)!.names.add(ref.name);
-    }
-
-    Promise.all(
-      [...groups.values()].map(g => fetchMRList(g.apiVersion, g.kind, g.names))
-    ).then(results => setMrs(results.flat()));
-  }, [JSON.stringify(resourceRefs)]);
+    let cancelled = false;
+    fetchReferencedResources(scopedRefs).then(items => {
+      if (!cancelled) setMrs(items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [scopedRefs]);
 
   const sorted = mrs
     ? [...mrs].sort((a, b) => {
@@ -102,22 +58,16 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
     <SectionBox title={`Managed Resources (${mrs?.length ?? '…'})`}>
       <Table
         columns={[
-          { header: 'Kind', accessorFn: (r: any) => r.kind },
+          { header: 'Kind', accessorFn: (r: any) => r.__kind ?? r.kind },
           {
             header: 'Name',
             accessorFn: (r: any) => r.metadata.name,
             Cell: ({ row }: any) => {
               const r = row.original;
-              const { group, version } = parseApiVersion(r.apiVersion ?? '');
-              const plural = r.__plural ?? r.kind.toLowerCase() + 's';
-              // Core/legacy resources (empty group, e.g. a raw ConfigMap) aren't
-              // routable via this CRD-shaped detail route.
-              if (!group) return r.metadata.name;
+              const params = detailParams(r);
+              if (!params) return r.metadata.name;
               return (
-                <HeadlampLink
-                  routeName="crossplane-managed-detail"
-                  params={{ group, version, plural, name: r.metadata.name }}
-                >
+                <HeadlampLink routeName="crossplane-managed-detail" params={params}>
                   {r.metadata.name}
                 </HeadlampLink>
               );
@@ -144,26 +94,23 @@ export function ManagedResources({ resourceRefs }: { resourceRefs: ResourceRef[]
               const r = row.original;
               const msg = debugMessage(r.status?.conditions ?? []);
               if (!msg) return '—';
-              const { group, version } = parseApiVersion(r.apiVersion ?? '');
-              const plural = r.__plural ?? r.kind.toLowerCase() + 's';
+              const params = detailParams(r);
               const text = (
                 <Tooltip title={msg} placement="top-start">
                   <Typography
                     variant="body2"
                     noWrap
-                    sx={{ maxWidth: 480, cursor: group ? 'pointer' : 'default', fontFamily: 'monospace', color: 'error.main' }}
+                    sx={{ maxWidth: 480, cursor: params ? 'pointer' : 'default', fontFamily: 'monospace', color: 'error.main' }}
                   >
                     {msg}
                   </Typography>
                 </Tooltip>
               );
-              // Core/legacy resources (empty group, e.g. a raw ConfigMap) aren't
-              // routable via this CRD-shaped detail route.
-              if (!group) return text;
+              if (!params) return text;
               return (
                 <HeadlampLink
                   routeName="crossplane-managed-detail"
-                  params={{ group, version, plural, name: r.metadata.name }}
+                  params={params}
                   style={{ textDecoration: 'none' }}
                 >
                   {text}

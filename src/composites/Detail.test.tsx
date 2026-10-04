@@ -44,6 +44,7 @@ vi.mock('@iconify/react', () => ({
   Icon: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
 }));
 
+import { useParams } from 'react-router-dom';
 import { KubeObject } from '../__mocks__/headlamp-k8s-cluster';
 import { CompositeDetail } from './Detail';
 
@@ -102,5 +103,29 @@ describe('CompositeDetail', () => {
     vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
     render(<CompositeDetail />);
     expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
+  });
+
+  test('loads a namespaced XR through a namespaced class so reconcile patches include the namespace', () => {
+    vi.mocked(useParams).mockReturnValueOnce({
+      group: 'example.io',
+      version: 'v1alpha1',
+      plural: 'xdatabases',
+      namespace: 'prod',
+      name: 'my-xdb',
+    });
+    vi.mocked(KubeObject.useList).mockClear();
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    render(<CompositeDetail />);
+    expect(KubeObject.useList).toHaveBeenCalledWith({ namespace: 'prod' });
+    expect((vi.mocked(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(true);
+    expect(screen.getByText('prod')).toBeTruthy();
+  });
+
+  test('loads a cluster-scoped XR through a cluster-scoped class when the route has no namespace', () => {
+    vi.mocked(KubeObject.useList).mockClear();
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    render(<CompositeDetail />);
+    expect(KubeObject.useList).toHaveBeenCalledWith(undefined);
+    expect((vi.mocked(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(false);
   });
 });

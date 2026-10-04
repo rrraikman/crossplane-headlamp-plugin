@@ -7,9 +7,10 @@ import {
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { useEffect, useMemo, useState } from 'react';
+import { detailRouteParams } from '../discovery';
 import { CompositeResourceDefinition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
-import { sortByReady,XRRow } from './List.utils';
+import { sortByReady, XRRow } from './List.utils';
 
 export function CompositeResourceList() {
   const [xrds] = CompositeResourceDefinition.useList();
@@ -40,6 +41,7 @@ export function CompositeResourceList() {
           .then((data: any) =>
             (data.items ?? []).map((item: any): XRRow => ({
               name: item.metadata.name,
+              namespace: item.metadata.namespace,
               kind,
               group,
               version,
@@ -57,17 +59,27 @@ export function CompositeResourceList() {
 
   if (!xrds || xrs === null) return <Loader title="Loading composite resources..." />;
 
+  const anyNamespaced = xrs.some(r => r.namespace);
+
   return (
     <SectionBox title={`Composite Resources (${xrs.length})`}>
       <Table
         columns={[
+          ...(anyNamespaced
+            ? [{ header: 'Namespace', accessorFn: (r: XRRow) => r.namespace ?? '—' }]
+            : []),
           {
             header: 'Name',
             accessorFn: (r: XRRow) => r.name,
             Cell: ({ row }: any) => (
               <HeadlampLink
                 routeName="crossplane-composite-detail"
-                params={{ group: row.original.group, version: row.original.version, plural: row.original.plural, name: row.original.name }}
+                params={detailRouteParams(
+                  `${row.original.group}/${row.original.version}`,
+                  row.original.plural,
+                  row.original.name,
+                  row.original.namespace
+                )}
               >
                 {row.original.name}
               </HeadlampLink>

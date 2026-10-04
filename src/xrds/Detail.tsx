@@ -11,6 +11,7 @@ import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { EventsTable } from '../components/EventsTable';
+import { detailRouteParams } from '../discovery';
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
 import { buildNotReadyInstances, debugMessage, NotReadyInstance, sortByReady } from './Detail.utils';
@@ -108,13 +109,21 @@ export function XRDDetail() {
   ];
 
   const xrColumns = [
+    ...(spec.scope === 'Namespaced'
+      ? [{ header: 'Namespace', accessorFn: (r: any) => r.metadata.namespace ?? '—' }]
+      : []),
     {
       header: 'Name',
       accessorFn: (r: any) => r.metadata.name,
       Cell: ({ row }: any) => (
         <HeadlampLink
           routeName="crossplane-composite-detail"
-          params={{ group: spec.group, version, plural: spec.names.plural, name: row.original.metadata.name }}
+          params={detailRouteParams(
+            `${spec.group}/${version}`,
+            spec.names.plural,
+            row.original.metadata.name,
+            row.original.metadata.namespace
+          )}
         >
           {row.original.metadata.name}
         </HeadlampLink>
