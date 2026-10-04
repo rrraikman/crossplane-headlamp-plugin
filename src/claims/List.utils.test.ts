@@ -12,6 +12,7 @@ function makeRow(overrides: Partial<ClaimRow> & { name: string }): ClaimRow {
     synced: 'True',
     message: null,
     creationTimestamp: '2024-01-01T00:00:00Z',
+    metadata: { name: overrides.name, namespace: overrides.namespace },
     ...overrides,
   };
 }

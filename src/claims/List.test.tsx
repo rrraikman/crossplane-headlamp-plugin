@@ -13,9 +13,13 @@ vi.mock('../resources', () => ({
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
+  SectionFilterHeader: ({ title }: any) => <span>{title}</span>,
   Loader: ({ title }: { title: string }) => <div>{title}</div>,
   SectionBox: ({ title, children }: any) => <section><h2>{title}</h2>{children}</section>,
-  Table: ({ data, emptyMessage, columns }: any) => (
+  // Applies filterFunction like the real Table, so namespace filtering is observable.
+  Table: ({ data: rawData, emptyMessage, columns, filterFunction }: any) => {
+    const data = filterFunction ? (rawData ?? []).filter((r: any) => filterFunction(r)) : rawData;
+    return (
     <>
       {!data || data.length === 0
         ? <span>{emptyMessage}</span>
@@ -29,14 +33,16 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
             </div>
           ))}
     </>
-  ),
+    );
+  },
   Link: ({ children }: any) => <span>{children}</span>,
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
-  useFilterFunc: () => () => true,
+  useFilterFunc: vi.fn(() => () => true),
 }));
 
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { CompositeResourceDefinition } from '../resources';
 import { ClaimList } from './List';
 
@@ -127,5 +133,22 @@ describe('ClaimList', () => {
     await waitFor(() => {
       expect(screen.getByText('—')).toBeTruthy();
     });
+  });
+
+  test('honours the namespace picker for claim rows', async () => {
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xdatabases.example.io')], null]);
+    const claim = (name: string, namespace: string) => ({
+      metadata: { name, namespace, creationTimestamp: '2024-01-01T00:00:00Z' },
+      status: { conditions: [] },
+    });
+    mockListsByPlural(KubeObject.useList, { databases: [claim('prod-db', 'prod'), claim('staging-db', 'staging')] });
+    vi.mocked(useFilterFunc).mockReturnValue(
+      ((item: any) => !item.metadata?.namespace || item.metadata.namespace === 'prod') as any
+    );
+    render(<ClaimList />);
+    await waitFor(() => expect(screen.getByText('prod-db')).toBeTruthy());
+    expect(screen.queryByText('staging-db')).toBeNull();
+    expect(screen.getByText('Claims (1)')).toBeTruthy();
+    vi.mocked(useFilterFunc).mockReturnValue((() => true) as any);
   });
 });

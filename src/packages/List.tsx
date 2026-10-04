@@ -3,15 +3,14 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box } from '@mui/material';
+import { statusColumn } from '../components/tableColumns';
 import { Configuration, Provider } from '../resources';
-import { age, conditionStatus, StatusChip } from '../utils';
+import { age, conditionStatus } from '../utils';
 
 export function PackageList() {
   const [providers] = Provider.useList();
   const [configurations] = Configuration.useList();
-  const filterFunction = useFilterFunc();
 
   return (
     <Box pb={6}>
@@ -28,21 +27,13 @@ export function PackageList() {
               ),
             },
             { header: 'Package', accessorFn: (r: any) => r.jsonData.spec?.package ?? '—' },
-            {
-              header: 'Installed',
-              accessorFn: (r: any) => conditionStatus(r, 'Installed'),
-              Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Installed')} />,
-            },
-            {
-              header: 'Healthy',
-              accessorFn: (r: any) => conditionStatus(r, 'Healthy'),
-              Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Healthy')} />,
-            },
+            statusColumn('Installed', (r: any) => conditionStatus(r, 'Installed')),
+            statusColumn('Healthy', (r: any) => conditionStatus(r, 'Healthy')),
             { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
           ]}
           data={providers ?? []}
+          enableFacetedValues
           loading={providers === null}
-          filterFunction={filterFunction}
           emptyMessage="No providers found"
         />
       </SectionBox>
@@ -60,21 +51,13 @@ export function PackageList() {
               ),
             },
             { header: 'Package', accessorFn: (r: any) => r.jsonData.spec?.package ?? '—' },
-            {
-              header: 'Installed',
-              accessorFn: (r: any) => conditionStatus(r, 'Installed'),
-              Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Installed')} />,
-            },
-            {
-              header: 'Healthy',
-              accessorFn: (r: any) => conditionStatus(r, 'Healthy'),
-              Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Healthy')} />,
-            },
+            statusColumn('Installed', (r: any) => conditionStatus(r, 'Installed')),
+            statusColumn('Healthy', (r: any) => conditionStatus(r, 'Healthy')),
             { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
           ]}
           data={configurations ?? []}
+          enableFacetedValues
           loading={configurations === null}
-          filterFunction={filterFunction}
           emptyMessage="No configurations found"
         />
       </SectionBox>

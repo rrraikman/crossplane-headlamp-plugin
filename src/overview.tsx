@@ -4,10 +4,10 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Paper, Tooltip, Typography, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
+import { facetColumn } from './components/tableColumns';
 import { detailRouteParams, parseApiVersion } from './discovery';
 import {
   countInstances,
@@ -28,13 +28,12 @@ import { failingCondition, isHealthy, rawConditionStatus } from './utils';
 import { useXRDInstanceLists } from './xrdInstances';
 
 function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
-  const filterFunction = useFilterFunc<NotReadyEntry>();
 
   return (
     <SectionBox title="Not Ready">
       <Table
         columns={[
-          { header: 'Kind', accessorFn: (r: NotReadyEntry) => r.kind },
+          facetColumn('Kind', (r: NotReadyEntry) => r.kind),
           {
             header: 'Name',
             accessorFn: (r: NotReadyEntry) => r.name,
@@ -50,7 +49,7 @@ function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
               );
             },
           },
-          { header: 'Condition', accessorFn: (r: NotReadyEntry) => r.conditionType },
+          facetColumn('Condition', (r: NotReadyEntry) => r.conditionType),
           {
             header: 'Reason',
             accessorFn: (r: NotReadyEntry) => r.reason,
@@ -84,7 +83,7 @@ function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
           },
         ]}
         data={items}
-        filterFunction={filterFunction}
+        enableFacetedValues
         emptyMessage="All resources are ready"
       />
     </SectionBox>

@@ -2,10 +2,11 @@ import {
   Link as HeadlampLink,
   Loader,
   SectionBox,
-  SimpleTable,
+  Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Alert, Box, CircularProgress, FormControlLabel, Switch, TextField, Typography } from '@mui/material';
+import { Alert, Box, CircularProgress, FormControlLabel, Switch, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
+import { facetColumn } from '../components/tableColumns';
 import {
   countInstances,
   crdToMRType,
@@ -19,7 +20,6 @@ export function ManagedResourceBrowser() {
   const [types, setTypes] = useState<MRType[] | null>(null);
   const [counts, setCounts] = useState<Record<string, number | null>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [filter, setFilter] = useState('');
   const [hideEmpty, setHideEmpty] = useState(true);
 
   useEffect(() => {
@@ -76,15 +76,8 @@ export function ManagedResourceBrowser() {
       });
     }
 
-    if (filter) {
-      const q = filter.toLowerCase();
-      result = result.filter(
-        r => r.kind.toLowerCase().includes(q) || r.group.toLowerCase().includes(q)
-      );
-    }
-
     return result;
-  }, [types, filter, hideEmpty, counts, allCountsResolved]);
+  }, [types, hideEmpty, counts, allCountsResolved]);
 
   if (!types) return <Loader title="Loading managed resource types..." />;
 
@@ -96,13 +89,6 @@ export function ManagedResourceBrowser() {
         </Alert>
       )}
       <Box display="flex" alignItems="center" gap={2} mb={2} flexWrap="wrap">
-        <TextField
-          size="small"
-          placeholder="Filter by kind or group…"
-          value={filter}
-          onChange={e => setFilter(e.target.value)}
-          sx={{ width: 320 }}
-        />
         <FormControlLabel
           control={
             <Switch size="small" checked={hideEmpty} onChange={e => setHideEmpty(e.target.checked)} />
@@ -122,32 +108,42 @@ export function ManagedResourceBrowser() {
           </Box>
         )}
       </Box>
-      <SimpleTable
+      <Table
         columns={[
           {
-            label: 'Kind',
-            getter: (r: MRType) => (
+            header: 'Kind',
+            accessorFn: (r: MRType) => r.kind,
+            Cell: ({ row }: { row: { original: MRType } }) => (
               <HeadlampLink
                 routeName="crossplane-managed-type"
-                params={{ group: r.group, version: r.version, plural: r.plural, kind: r.kind }}
+                params={{
+                  group: row.original.group,
+                  version: row.original.version,
+                  plural: row.original.plural,
+                  kind: row.original.kind,
+                }}
               >
-                {r.kind}
+                {row.original.kind}
               </HeadlampLink>
             ),
           },
-          { label: 'Group', getter: (r: MRType) => r.group },
-          { label: 'Version', getter: (r: MRType) => r.version },
+          facetColumn('Group', (r: MRType) => r.group),
+          { header: 'Version', accessorFn: (r: MRType) => r.version },
           {
-            label: 'Instances',
-            getter: (r: MRType) => {
-              const c = counts[typeKey(r)];
-              return c === null ? '…' : String(c);
+            header: 'Instances',
+            // Numeric so the column sorts by count; -1 while the count is loading.
+            accessorFn: (r: MRType) => counts[typeKey(r)] ?? -1,
+            Cell: ({ row }: { row: { original: MRType } }) => {
+              const c = counts[typeKey(row.original)];
+              return c === null || c === undefined ? '…' : String(c);
             },
           },
         ]}
-        data={filtered}
+        data={filtered ?? []}
+        enableFacetedValues
+        initialState={{ showGlobalFilter: true }}
         emptyMessage={
-          hideEmpty && !filter
+          hideEmpty
             ? 'No managed resource types with instances found'
             : 'No managed resource types found'
         }

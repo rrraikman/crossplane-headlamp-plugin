@@ -323,6 +323,13 @@ Don't hand-roll this: `discoverResource(apiVersion, kind)` in `src/discovery.ts`
 - `apiextensions.crossplane.io/v1` — CompositeResourceDefinition, Composition
 - XRs and Claims: user-defined group, discovered via XRD `spec.group` + `spec.names.plural`
 
+### Tables: Search and Filtering
+
+Every Headlamp `Table` already has a search box, column filters, sorting and column hiding. Search matches each column's `accessorFn` value, so make accessors return the text a user would type (not JSX or `undefined`). When adding a table:
+
+- **Categorical columns** (status, Kind, Namespace, Group, Mode, event Type/Reason): use `statusColumn` / `facetColumn` / `namespaceColumn` from `src/components/tableColumns.tsx` and pass `enableFacetedValues` to the `Table`, giving a multi-select dropdown populated from the data.
+- **Namespace filter only where a picker is visible.** Headlamp's namespace filter (`useFilterFunc`) is saved across pages, so applying it on a page without a picker silently hides rows. List pages with namespaced rows (Claims, Composite Resources, managed-type instances) render `<SectionBox title={<SectionFilterHeader title={…} />}>`, give plain rows a `metadata: { name, namespace }` (the filter ignores items without `metadata`), and filter rows themselves so the title count matches. Detail-page sub-tables (Events, Conditions, an XR's managed resources, XRD instance tables) must **not** pass `filterFunction`.
+
 ### Status Chips in Section Headers
 
 To place a status chip inline with a section title (without shrinking the heading font), use `SectionBox`'s `headerProps.titleSideActions`. Wrapping the title in a `<Box>` instead causes `SectionBox` to treat it as a ReactNode and skip the heading typography.

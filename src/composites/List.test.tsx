@@ -13,9 +13,13 @@ vi.mock('../resources', () => ({
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
+  SectionFilterHeader: ({ title }: any) => <span>{title}</span>,
   Loader: ({ title }: { title: string }) => <div>{title}</div>,
   SectionBox: ({ title, children }: any) => <section><h2>{title}</h2>{children}</section>,
-  Table: ({ data, emptyMessage, columns }: any) => (
+  // Applies filterFunction like the real Table, so namespace filtering is observable.
+  Table: ({ data: rawData, emptyMessage, columns, filterFunction }: any) => {
+    const data = filterFunction ? (rawData ?? []).filter((r: any) => filterFunction(r)) : rawData;
+    return (
     <>
       {!data || data.length === 0
         ? <span>{emptyMessage}</span>
@@ -29,14 +33,16 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
             </div>
           ))}
     </>
-  ),
+    );
+  },
   Link: ({ children }: any) => <span>{children}</span>,
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
-  useFilterFunc: () => () => true,
+  useFilterFunc: vi.fn(() => () => true),
 }));
 
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { CompositeResourceDefinition } from '../resources';
 import { CompositeResourceList } from './List';
 
@@ -89,5 +95,25 @@ describe('CompositeResourceList', () => {
     await waitFor(() => {
       expect(screen.getByText('my-xdb')).toBeTruthy();
     });
+  });
+
+  test('honours the namespace picker for XR rows and keeps cluster-scoped XRs', async () => {
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xdatabases.example.io')], null]);
+    const xr = (name: string, namespace?: string) => ({
+      metadata: { name, namespace, creationTimestamp: '2024-01-01T00:00:00Z' },
+      status: { conditions: [] },
+    });
+    mockListsByPlural(KubeObject.useList, {
+      xdatabases: [xr('prod-xr', 'prod'), xr('staging-xr', 'staging'), xr('cluster-xr')],
+    });
+    vi.mocked(useFilterFunc).mockReturnValue(
+      ((item: any) => !item.metadata?.namespace || item.metadata.namespace === 'prod') as any
+    );
+    render(<CompositeResourceList />);
+    await waitFor(() => expect(screen.getByText('prod-xr')).toBeTruthy());
+    expect(screen.getByText('cluster-xr')).toBeTruthy();
+    expect(screen.queryByText('staging-xr')).toBeNull();
+    expect(screen.getByText('Composite Resources (2)')).toBeTruthy();
+    vi.mocked(useFilterFunc).mockReturnValue((() => true) as any);
   });
 });

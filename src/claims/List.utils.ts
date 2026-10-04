@@ -11,6 +11,8 @@ export interface ClaimRow {
   synced: string;
   message: string | null;
   creationTimestamp: string;
+  // Headlamp's namespace picker (useFilterFunc) only filters items with metadata.
+  metadata: { name: string; namespace?: string };
 }
 
 export function sortByReady(rows: ClaimRow[]): ClaimRow[] {

@@ -7,19 +7,18 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Paper, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
+import { facetColumn } from '../components/tableColumns';
 import { Composition } from '../resources';
 import { age, conditionStatus, StatusChip } from '../utils';
 
 export function CompositionDetail() {
   const { name } = useParams<{ name: string }>();
   const [composition, error] = Composition.useGet(name);
-  const filterFunction = useFilterFunc();
 
   if (error) return <LoadError what={name} error={error} />;
   if (!composition) return <Loader title="Loading..." />;
@@ -109,12 +108,12 @@ export function CompositionDetail() {
           <Table
             columns={[
               { header: 'Name', accessorFn: (r: any) => r.name ?? '—' },
-              { header: 'Kind', accessorFn: (r: any) => r.base?.kind ?? '—' },
+              facetColumn('Kind', (r: any) => r.base?.kind),
               { header: 'API Version', accessorFn: (r: any) => r.base?.apiVersion ?? '—' },
               { header: 'Patches', accessorFn: (r: any) => String(r.patches?.length ?? 0) },
             ]}
             data={resources}
-            filterFunction={filterFunction}
+            enableFacetedValues
             emptyMessage="No resources defined"
           />
         </SectionBox>

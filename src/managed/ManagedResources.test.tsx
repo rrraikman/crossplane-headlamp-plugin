@@ -8,7 +8,10 @@ vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
   SectionBox: ({ title, children }: any) => <section><h2>{title}</h2>{children}</section>,
-  Table: ({ data, emptyMessage, columns }: any) => (
+  // Applies filterFunction like the real Table, so namespace filtering is observable.
+  Table: ({ data: rawData, emptyMessage, columns, filterFunction }: any) => {
+    const data = filterFunction ? (rawData ?? []).filter((r: any) => filterFunction(r)) : rawData;
+    return (
     <>
       {!data || data.length === 0
         ? <span>{emptyMessage}</span>
@@ -22,17 +25,19 @@ vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
             </div>
           ))}
     </>
-  ),
+    );
+  },
   Link: ({ children, params }: any) => (
     <span data-testid="link" data-params={JSON.stringify(params)}>{children}</span>
   ),
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/Utils', () => ({
-  useFilterFunc: () => () => true,
+  useFilterFunc: vi.fn(() => () => true),
 }));
 
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
+import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { clearDiscoveryCache } from '../discovery';
 import { ManagedResources } from './ManagedResources';
 
@@ -120,5 +125,22 @@ describe('ManagedResources', () => {
       name: 'ingress',
       namespace: 'prod',
     });
+  });
+
+  test('is not emptied by a saved namespace filter the page does not show', async () => {
+    clearDiscoveryCache();
+    vi.mocked(useFilterFunc).mockReturnValue((() => false) as any);
+    vi.mocked(request).mockImplementation((path: string) =>
+      path === '/apis/example.io/v1alpha1'
+        ? Promise.resolve({ resources: [{ kind: 'NoSQLDB', name: 'nosqldbs', namespaced: true }] })
+        : Promise.resolve({
+            items: [{ metadata: { name: 'my-mr', namespace: 'prod', creationTimestamp: '2024-01-01T00:00:00Z' } }],
+          })
+    );
+    render(
+      <ManagedResources namespace="prod" resourceRefs={[{ apiVersion: 'example.io/v1alpha1', kind: 'NoSQLDB', name: 'my-mr' }]} />
+    );
+    await waitFor(() => expect(screen.getByText('my-mr')).toBeTruthy());
+    vi.mocked(useFilterFunc).mockReturnValue((() => true) as any);
   });
 });

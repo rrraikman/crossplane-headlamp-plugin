@@ -4,14 +4,16 @@ import {
   Loader,
   NameValueTable,
   SectionBox,
+  SectionFilterHeader,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box } from '@mui/material';
 import { useParams } from 'react-router-dom';
+import { namespaceColumn, statusColumn } from '../components/tableColumns';
 import { detailRouteParams } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
-import { age, rawConditionStatus, sortFailingFirst, StatusChip } from '../utils';
+import { age, rawConditionStatus, sortFailingFirst } from '../utils';
 
 export function ManagedResourceTypeList() {
   const { group, version, plural, kind } = useParams<{
@@ -31,6 +33,8 @@ export function ManagedResourceTypeList() {
     r => rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Ready') === 'True'
   );
   const anyNamespaced = rows.some(r => r.metadata.namespace);
+  // Filter here (not via Table's filterFunction) so the title count matches the namespace picker.
+  const visibleRows = rows.filter(r => filterFunction(r));
 
   return (
     <Box pb={6}>
@@ -45,12 +49,10 @@ export function ManagedResourceTypeList() {
         />
       </SectionBox>
 
-      <SectionBox title={`Instances (${rows.length})`}>
+      <SectionBox title={<SectionFilterHeader title={`Instances (${visibleRows.length})`} />}>
         <Table
           columns={[
-            ...(anyNamespaced
-              ? [{ header: 'Namespace', accessorFn: (r: any) => r.metadata.namespace ?? '—' }]
-              : []),
+            ...(anyNamespaced ? [namespaceColumn((r: any) => r.metadata.namespace)] : []),
             {
               header: 'Name',
               accessorFn: (r: any) => r.metadata.name,
@@ -68,28 +70,16 @@ export function ManagedResourceTypeList() {
                 </HeadlampLink>
               ),
             },
-            {
-              header: 'Ready',
-              accessorFn: (r: any) => rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Ready'),
-              Cell: ({ row }: any) => (
-                <StatusChip
-                  status={rawConditionStatus(row.original.jsonData?.status?.conditions ?? [], 'Ready')}
-                />
-              ),
-            },
-            {
-              header: 'Synced',
-              accessorFn: (r: any) => rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Synced'),
-              Cell: ({ row }: any) => (
-                <StatusChip
-                  status={rawConditionStatus(row.original.jsonData?.status?.conditions ?? [], 'Synced')}
-                />
-              ),
-            },
+            statusColumn('Ready', (r: any) =>
+              rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Ready')
+            ),
+            statusColumn('Synced', (r: any) =>
+              rawConditionStatus(r.jsonData?.status?.conditions ?? [], 'Synced')
+            ),
             { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
           ]}
-          data={rows}
-          filterFunction={filterFunction}
+          data={visibleRows}
+          enableFacetedValues
           emptyMessage={`No ${kind} instances have been created yet`}
         />
       </SectionBox>

@@ -3,13 +3,12 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
+import { facetColumn } from '../components/tableColumns';
 import { Composition } from '../resources';
 import { age } from '../utils';
 
 export function CompositionList() {
   const [compositions] = Composition.useList();
-  const filterFunction = useFilterFunc();
 
   return (
     <SectionBox title="Compositions">
@@ -27,22 +26,16 @@ export function CompositionList() {
               </HeadlampLink>
             ),
           },
-          {
-            header: 'Composite Type',
-            accessorFn: (r: any) => r.jsonData.spec?.compositeTypeRef?.kind ?? '—',
-          },
-          {
-            header: 'Mode',
-            accessorFn: (r: any) => r.jsonData.spec?.mode ?? 'Resources',
-          },
+          facetColumn('Composite Type', (r: any) => r.jsonData.spec?.compositeTypeRef?.kind),
+          facetColumn('Mode', (r: any) => r.jsonData.spec?.mode ?? 'Resources'),
           {
             header: 'Age',
             accessorFn: (r: any) => age(r.metadata.creationTimestamp),
           },
         ]}
         data={compositions ?? []}
+        enableFacetedValues
         loading={compositions === null}
-        filterFunction={filterFunction}
         emptyMessage="No compositions found"
       />
     </SectionBox>

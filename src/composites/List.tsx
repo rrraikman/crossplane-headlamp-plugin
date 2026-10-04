@@ -2,13 +2,15 @@ import {
   Link as HeadlampLink,
   Loader,
   SectionBox,
+  SectionFilterHeader,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { useMemo } from 'react';
+import { facetColumn, namespaceColumn, statusColumn } from '../components/tableColumns';
 import { detailRouteParams } from '../discovery';
 import { CompositeResourceDefinition } from '../resources';
-import { age, rawConditionStatus, StatusChip } from '../utils';
+import { age, rawConditionStatus } from '../utils';
 import { useXRDInstanceLists } from '../xrdInstances';
 import { sortByReady, XRRow } from './List.utils';
 
@@ -33,6 +35,7 @@ export function CompositeResourceList() {
               ready: rawConditionStatus(item.status?.conditions ?? [], 'Ready'),
               synced: rawConditionStatus(item.status?.conditions ?? [], 'Synced'),
               creationTimestamp: item.metadata.creationTimestamp,
+              metadata: { name: item.metadata.name, namespace: item.metadata.namespace },
             })
           )
         )
@@ -50,16 +53,18 @@ export function CompositeResourceList() {
   }
 
   const anyNamespaced = xrs.some(r => r.namespace);
+  // Filter here (not via Table's filterFunction) so the title count matches the namespace picker.
+  const visibleXrs = xrs.filter(r => filterFunction(r));
 
   return (
     <>
       {watchers}
-      <SectionBox title={`Composite Resources (${xrs.length})`}>
+      <SectionBox
+        title={<SectionFilterHeader title={`Composite Resources (${visibleXrs.length})`} />}
+      >
         <Table
           columns={[
-            ...(anyNamespaced
-              ? [{ header: 'Namespace', accessorFn: (r: XRRow) => r.namespace ?? '—' }]
-              : []),
+            ...(anyNamespaced ? [namespaceColumn((r: XRRow) => r.namespace)] : []),
             {
               header: 'Name',
               accessorFn: (r: XRRow) => r.name,
@@ -77,21 +82,13 @@ export function CompositeResourceList() {
                 </HeadlampLink>
               ),
             },
-            { header: 'Kind', accessorFn: (r: XRRow) => r.kind },
-            {
-              header: 'Ready',
-              accessorFn: (r: XRRow) => r.ready,
-              Cell: ({ row }: any) => <StatusChip status={row.original.ready} />,
-            },
-            {
-              header: 'Synced',
-              accessorFn: (r: XRRow) => r.synced,
-              Cell: ({ row }: any) => <StatusChip status={row.original.synced} />,
-            },
+            facetColumn('Kind', (r: XRRow) => r.kind),
+            statusColumn('Ready', (r: XRRow) => r.ready),
+            statusColumn('Synced', (r: XRRow) => r.synced),
             { header: 'Age', accessorFn: (r: XRRow) => age(r.creationTimestamp) },
           ]}
-          data={xrs}
-          filterFunction={filterFunction}
+          data={visibleXrs}
+          enableFacetedValues
           emptyMessage="No composite resources found"
         />
       </SectionBox>

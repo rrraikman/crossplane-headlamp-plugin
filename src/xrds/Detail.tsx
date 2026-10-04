@@ -5,15 +5,15 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
+import { facetColumn, namespaceColumn, statusColumn } from '../components/tableColumns';
 import { detailRouteParams, parseApiVersion } from '../discovery';
 import { CompositeResourceDefinition, Composition } from '../resources';
-import { age, debugMessage, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
+import { age, debugMessage, getReferenceableVersion, rawConditionStatus } from '../utils';
 import { useXRDInstanceLists } from '../xrdInstances';
 import { buildNotReadyInstances, NotReadyInstance, sortByReady } from './Detail.utils';
 import { SchemaTree } from './SchemaTree';
@@ -38,7 +38,6 @@ export function XRDDetail() {
   const { name } = useParams<{ name: string }>();
   const [xrd, xrdError] = CompositeResourceDefinition.useGet(name);
   const [compositions] = Composition.useList();
-  const filterFunction = useFilterFunc<any>();
 
   const xrdList = useMemo(() => (xrd ? [xrd] : null), [xrd]);
   const compositeLists = useXRDInstanceLists(xrdList, 'composite');
@@ -76,20 +75,8 @@ export function XRDDetail() {
   const version = getReferenceableVersion(spec);
 
   const statusColumns = [
-    {
-      header: 'Ready',
-      accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Ready'),
-      Cell: ({ row }: any) => (
-        <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Ready')} />
-      ),
-    },
-    {
-      header: 'Synced',
-      accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Synced'),
-      Cell: ({ row }: any) => (
-        <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Synced')} />
-      ),
-    },
+    statusColumn('Ready', (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Ready')),
+    statusColumn('Synced', (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Synced')),
     {
       header: 'Message',
       accessorFn: (r: any) => debugMessage(r.status?.conditions ?? []) ?? '—',
@@ -99,9 +86,7 @@ export function XRDDetail() {
   ];
 
   const xrColumns = [
-    ...(spec.scope === 'Namespaced'
-      ? [{ header: 'Namespace', accessorFn: (r: any) => r.metadata.namespace ?? '—' }]
-      : []),
+    ...(spec.scope === 'Namespaced' ? [namespaceColumn((r: any) => r.metadata.namespace)] : []),
     {
       header: 'Name',
       accessorFn: (r: any) => r.metadata.name,
@@ -123,7 +108,7 @@ export function XRDDetail() {
   ];
 
   const claimColumns = [
-    { header: 'Namespace', accessorFn: (r: any) => r.metadata.namespace },
+    namespaceColumn((r: any) => r.metadata.namespace),
     {
       header: 'Name',
       accessorFn: (r: any) => r.metadata.name,
@@ -174,9 +159,9 @@ export function XRDDetail() {
         <SectionBox title={`Not Ready (${notReadyInstances.length})`}>
           <Table
             columns={[
-              { header: 'Kind', accessorFn: (r: NotReadyInstance) => r.instanceKind },
+              facetColumn('Kind', (r: NotReadyInstance) => r.instanceKind),
               { header: 'Name', accessorFn: (r: NotReadyInstance) => r.name },
-              { header: 'Namespace', accessorFn: (r: NotReadyInstance) => r.namespace },
+              namespaceColumn((r: NotReadyInstance) => r.namespace),
               {
                 header: 'Reason',
                 accessorFn: (r: NotReadyInstance) => r.reason,
@@ -201,7 +186,7 @@ export function XRDDetail() {
               },
             ]}
             data={notReadyInstances}
-            filterFunction={filterFunction}
+            enableFacetedValues
           />
         </SectionBox>
       )}
@@ -211,8 +196,8 @@ export function XRDDetail() {
         <Table
           columns={xrColumns}
           data={xrs ? sortByReady(xrs) : []}
+          enableFacetedValues
           loading={xrs === null}
-          filterFunction={filterFunction}
           emptyMessage="No composite resources found"
         />
       </SectionBox>
@@ -223,7 +208,7 @@ export function XRDDetail() {
           <Table
             columns={claimColumns}
             data={sortByReady(claims)}
-            filterFunction={filterFunction}
+            enableFacetedValues
             emptyMessage="No claims found"
           />
         </SectionBox>
@@ -248,7 +233,7 @@ export function XRDDetail() {
             { header: 'Age', accessorFn: (c: any) => age(c.metadata.creationTimestamp) },
           ]}
           data={relevantCompositions}
-          filterFunction={filterFunction}
+          enableFacetedValues
           emptyMessage="No compositions reference this XRD"
         />
       </SectionBox>
