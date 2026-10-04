@@ -1,4 +1,3 @@
-import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import {
   Link as HeadlampLink,
   Loader,
@@ -7,28 +6,14 @@ import {
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { Alert, Box, CircularProgress, FormControlLabel, Switch, TextField, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-
-interface MRType {
-  kind: string;
-  group: string;
-  version: string;
-  plural: string;
-}
-
-function crdToMRType(crd: any): MRType {
-  const storageVersion =
-    crd.spec.versions?.find((v: any) => v.storage) ?? crd.spec.versions?.[0];
-  return {
-    kind: crd.spec.names.kind,
-    group: crd.spec.group,
-    version: storageVersion?.name ?? 'v1',
-    plural: crd.spec.names.plural,
-  };
-}
-
-function typeKey(t: MRType): string {
-  return `${t.group}/${t.plural}`;
-}
+import {
+  countInstances,
+  crdToMRType,
+  fetchManagedResourceCRDs,
+  mapWithConcurrency,
+  MRType,
+  typeKey,
+} from './List.utils';
 
 export function ManagedResourceBrowser() {
   const [types, setTypes] = useState<MRType[] | null>(null);
@@ -38,43 +23,29 @@ export function ManagedResourceBrowser() {
   const [hideEmpty, setHideEmpty] = useState(true);
 
   useEffect(() => {
-    request(
-      '/apis/apiextensions.k8s.io/v1/customresourcedefinitions?labelSelector=crossplane.io%2Fresource%3Dmanaged'
-    )
-      .then((data: any) => {
-        const items: any[] = data.items ?? [];
-        if (items.length > 0) return items;
-        return request('/apis/apiextensions.k8s.io/v1/customresourcedefinitions').then(
-          (all: any) =>
-            (all.items ?? []).filter((crd: any) =>
-              (crd.spec.names.categories ?? []).includes('managed')
-            )
-        );
-      })
-      .then((items: any[]) => {
+    let cancelled = false;
+    fetchManagedResourceCRDs()
+      .then(items => {
+        if (cancelled) return;
         const result = items.map(crdToMRType);
         result.sort((a, b) => a.group.localeCompare(b.group) || a.kind.localeCompare(b.kind));
         setTypes(result);
+        setCounts(Object.fromEntries(result.map(t => [typeKey(t), null])));
 
-        // Initialise all counts as null (loading), then fetch in parallel.
-        const initial: Record<string, number | null> = {};
-        result.forEach(t => {
-          initial[typeKey(t)] = null;
-        });
-        setCounts(initial);
-
-        result.forEach(t => {
-          request(`/apis/${t.group}/${t.version}/${t.plural}`)
-            .then((d: any) =>
-              setCounts(prev => ({ ...prev, [typeKey(t)]: (d.items ?? []).length }))
-            )
-            .catch(() => setCounts(prev => ({ ...prev, [typeKey(t)]: 0 })));
+        mapWithConcurrency(result, 8, async t => {
+          if (cancelled) return;
+          const count = await countInstances(t).catch(() => 0);
+          if (!cancelled) setCounts(prev => ({ ...prev, [typeKey(t)]: count }));
         });
       })
       .catch(err => {
+        if (cancelled) return;
         setLoadError(err?.message ?? 'Failed to load CRDs');
         setTypes([]);
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const allCountsResolved = useMemo(
