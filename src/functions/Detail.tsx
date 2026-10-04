@@ -6,7 +6,6 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip } from '@mui/material';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -14,6 +13,7 @@ import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
 import { PackageRevisionSection } from '../components/PackageRevisionSection';
+import { facetColumn } from '../components/tableColumns';
 import { packageStatusLabel } from '../packages/Detail.utils';
 import { Composition, CrossplaneFunction, CrossplaneFunctionRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
@@ -22,7 +22,6 @@ export function FunctionDetail() {
   const { name } = useParams<{ name: string }>();
   const [fn, fnError] = CrossplaneFunction.useGet(name);
   const [compositions] = Composition.useList();
-  const filterFunction = useFilterFunc();
 
   const revisionName: string = fn?.jsonData?.status?.currentRevision ?? '';
 
@@ -84,11 +83,11 @@ export function FunctionDetail() {
                 </HeadlampLink>
               ),
             },
-            { header: 'Composite Type', accessorFn: (c: any) => c.jsonData.spec?.compositeTypeRef?.kind ?? '—' },
+            facetColumn('Composite Type', (c: any) => c.jsonData.spec?.compositeTypeRef?.kind),
             { header: 'Age', accessorFn: (c: any) => age(c.metadata.creationTimestamp) },
           ]}
           data={referencingCompositions}
-          filterFunction={filterFunction}
+          enableFacetedValues
           emptyMessage="No compositions reference this function"
         />
       </SectionBox>

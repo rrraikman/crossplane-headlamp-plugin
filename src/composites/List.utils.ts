@@ -10,6 +10,8 @@ export interface XRRow {
   ready: string;
   synced: string;
   creationTimestamp: string;
+  // Headlamp's namespace picker (useFilterFunc) only filters items with metadata.
+  metadata: { name: string; namespace?: string };
 }
 
 export function sortByReady(rows: XRRow[]): XRRow[] {

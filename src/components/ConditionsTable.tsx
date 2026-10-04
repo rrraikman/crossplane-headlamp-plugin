@@ -1,7 +1,7 @@
 import { Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Chip, Tooltip, Typography } from '@mui/material';
-import { age, StatusChip } from '../utils';
+import { age } from '../utils';
+import { facetColumn, statusColumn } from './tableColumns';
 
 export function reasonColor(status: string): 'success' | 'error' | 'warning' {
   if (status === 'True') return 'success';
@@ -10,17 +10,12 @@ export function reasonColor(status: string): 'success' | 'error' | 'warning' {
 }
 
 export function ConditionsTable({ conditions }: { conditions: any[] | undefined }) {
-  const filterFunction = useFilterFunc();
 
   return (
     <Table
       columns={[
-        { header: 'Type', accessorFn: (c: any) => c.type },
-        {
-          header: 'Status',
-          accessorFn: (c: any) => c.status,
-          Cell: ({ row }: any) => <StatusChip status={row.original.status} />,
-        },
+        facetColumn('Type', (c: any) => c.type),
+        statusColumn('Status', (c: any) => c.status),
         {
           header: 'Reason',
           accessorFn: (c: any) => c.reason ?? '—',
@@ -60,7 +55,7 @@ export function ConditionsTable({ conditions }: { conditions: any[] | undefined 
         },
       ]}
       data={conditions ?? []}
-      filterFunction={filterFunction}
+      enableFacetedValues
       emptyMessage="No conditions reported"
     />
   );

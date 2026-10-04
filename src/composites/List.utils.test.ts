@@ -10,6 +10,7 @@ function makeRow(overrides: Partial<XRRow> & { name: string }): XRRow {
     ready: 'True',
     synced: 'True',
     creationTimestamp: '2024-01-01T00:00:00Z',
+    metadata: { name: overrides.name, namespace: overrides.namespace },
     ...overrides,
   };
 }

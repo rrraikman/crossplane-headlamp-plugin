@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
+  SectionFilterHeader: ({ title }: any) => <span>{title}</span>,
   BackLink: () => null,
   Loader: ({ title }: { title: string }) => <div>{title}</div>,
   NameValueTable: ({ rows }: { rows: { name: string; value: any }[] }) => (

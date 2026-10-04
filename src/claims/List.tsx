@@ -2,13 +2,15 @@ import {
   Link as HeadlampLink,
   Loader,
   SectionBox,
+  SectionFilterHeader,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
 import { useMemo } from 'react';
+import { facetColumn, namespaceColumn, statusColumn } from '../components/tableColumns';
 import { CompositeResourceDefinition } from '../resources';
-import { age, debugMessage, rawConditionStatus, StatusChip } from '../utils';
+import { age, debugMessage, rawConditionStatus } from '../utils';
 import { useXRDInstanceLists } from '../xrdInstances';
 import { ClaimRow, sortByReady } from './List.utils';
 
@@ -41,6 +43,7 @@ export function ClaimList() {
               synced: rawConditionStatus(conditions, 'Synced'),
               message: debugMessage(conditions),
               creationTimestamp: item.metadata.creationTimestamp,
+              metadata: { name: item.metadata.name, namespace: item.metadata.namespace },
             };
           })
         )
@@ -57,6 +60,9 @@ export function ClaimList() {
     );
   }
 
+  // Filter here (not via Table's filterFunction) so the title count matches the namespace picker.
+  const visibleClaims = claims.filter(c => filterFunction(c));
+
   const emptyMessage =
     claimXrds?.length === 0
       ? 'No XRDs in this cluster define a claim type'
@@ -65,7 +71,7 @@ export function ClaimList() {
   return (
     <>
       {watchers}
-      <SectionBox title={`Claims (${claims.length})`}>
+      <SectionBox title={<SectionFilterHeader title={`Claims (${visibleClaims.length})`} />}>
         {claimXrds && claimXrds.length > 0 && claims.length === 0 && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             {claimXrds.length} claim type(s) available:{' '}
@@ -74,7 +80,7 @@ export function ClaimList() {
         )}
         <Table
           columns={[
-            { header: 'Namespace', accessorFn: (r: ClaimRow) => r.namespace },
+            namespaceColumn((r: ClaimRow) => r.metadata.namespace),
             {
               header: 'Name',
               accessorFn: (r: ClaimRow) => r.name,
@@ -96,17 +102,9 @@ export function ClaimList() {
                 );
               },
             },
-            { header: 'Kind', accessorFn: (r: ClaimRow) => r.kind },
-            {
-              header: 'Ready',
-              accessorFn: (r: ClaimRow) => r.ready,
-              Cell: ({ row }: any) => <StatusChip status={row.original.ready} />,
-            },
-            {
-              header: 'Synced',
-              accessorFn: (r: ClaimRow) => r.synced,
-              Cell: ({ row }: any) => <StatusChip status={row.original.synced} />,
-            },
+            facetColumn('Kind', (r: ClaimRow) => r.kind),
+            statusColumn('Ready', (r: ClaimRow) => r.ready),
+            statusColumn('Synced', (r: ClaimRow) => r.synced),
             {
               header: 'Message',
               accessorFn: (r: ClaimRow) => r.message ?? '—',
@@ -141,8 +139,8 @@ export function ClaimList() {
             },
             { header: 'Age', accessorFn: (r: ClaimRow) => age(r.creationTimestamp) },
           ]}
-          data={claims}
-          filterFunction={filterFunction}
+          data={visibleClaims}
+          enableFacetedValues
           emptyMessage={emptyMessage}
         />
       </SectionBox>

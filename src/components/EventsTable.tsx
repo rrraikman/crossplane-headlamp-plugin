@@ -1,6 +1,5 @@
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { age } from '../utils';
@@ -16,7 +15,6 @@ export function EventsTable({
   namespace?: string;
 }) {
   const [events, setEvents] = useState<any[] | null>(null);
-  const filterFunction = useFilterFunc();
 
   useEffect(() => {
     const parts = [`involvedObject.name=${resourceName}`];
@@ -45,6 +43,7 @@ export function EventsTable({
           {
             header: 'Type',
             accessorFn: (e: any) => e.type,
+            filterVariant: 'multi-select',
             Cell: ({ row }: any) => (
               <Chip
                 size="small"
@@ -54,7 +53,7 @@ export function EventsTable({
               />
             ),
           },
-          { header: 'Reason', accessorFn: (e: any) => e.reason },
+          { header: 'Reason', accessorFn: (e: any) => e.reason, filterVariant: 'multi-select' },
           {
             header: 'Message',
             accessorFn: (e: any) => e.message,
@@ -78,8 +77,8 @@ export function EventsTable({
           },
         ]}
         data={sorted ?? []}
+        enableFacetedValues
         loading={sorted === null}
-        filterFunction={filterFunction}
         emptyMessage="No recent events"
       />
     </SectionBox>

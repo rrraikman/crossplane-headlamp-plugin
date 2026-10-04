@@ -1,11 +1,10 @@
 import { Link as HeadlampLink, SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
+import { facetColumn, statusColumn } from '../components/tableColumns';
 import { CompositeResourceDefinition } from '../resources';
-import { age, conditionStatus, StatusChip } from '../utils';
+import { age, conditionStatus } from '../utils';
 
 export function XRDList() {
   const [xrds] = CompositeResourceDefinition.useList();
-  const filterFunction = useFilterFunc();
 
   return (
     <SectionBox title="Composite Resource Definitions">
@@ -20,7 +19,7 @@ export function XRDList() {
               </HeadlampLink>
             ),
           },
-          { header: 'Group', accessorFn: (r: any) => r.jsonData.spec?.group ?? '—' },
+          facetColumn('Group', (r: any) => r.jsonData.spec?.group),
           {
             header: 'Versions',
             accessorFn: (r: any) =>
@@ -28,16 +27,12 @@ export function XRDList() {
           },
           { header: 'Composite Kind', accessorFn: (r: any) => r.jsonData.spec?.names?.kind ?? '—' },
           { header: 'Claim Kind', accessorFn: (r: any) => r.jsonData.spec?.claimNames?.kind ?? '—' },
-          {
-            header: 'Established',
-            accessorFn: (r: any) => conditionStatus(r, 'Established'),
-            Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Established')} />,
-          },
+          statusColumn('Established', (r: any) => conditionStatus(r, 'Established')),
           { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
         ]}
         data={xrds ?? []}
+        enableFacetedValues
         loading={xrds === null}
-        filterFunction={filterFunction}
         emptyMessage="No composite resource definitions found"
       />
     </SectionBox>

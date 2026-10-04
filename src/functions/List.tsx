@@ -3,13 +3,12 @@ import {
   SectionBox,
   Table,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
+import { statusColumn } from '../components/tableColumns';
 import { CrossplaneFunction } from '../resources';
-import { age, conditionStatus, StatusChip } from '../utils';
+import { age, conditionStatus } from '../utils';
 
 export function FunctionList() {
   const [functions] = CrossplaneFunction.useList();
-  const filterFunction = useFilterFunc();
 
   return (
     <SectionBox title="Functions">
@@ -28,21 +27,13 @@ export function FunctionList() {
             ),
           },
           { header: 'Package', accessorFn: (r: any) => r.jsonData.spec?.package ?? '—' },
-          {
-            header: 'Installed',
-            accessorFn: (r: any) => conditionStatus(r, 'Installed'),
-            Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Installed')} />,
-          },
-          {
-            header: 'Healthy',
-            accessorFn: (r: any) => conditionStatus(r, 'Healthy'),
-            Cell: ({ row }: any) => <StatusChip status={conditionStatus(row.original, 'Healthy')} />,
-          },
+          statusColumn('Installed', (r: any) => conditionStatus(r, 'Installed')),
+          statusColumn('Healthy', (r: any) => conditionStatus(r, 'Healthy')),
           { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
         ]}
         data={functions ?? []}
+        enableFacetedValues
         loading={functions === null}
-        filterFunction={filterFunction}
         emptyMessage="No functions found"
       />
     </SectionBox>

@@ -1,9 +1,9 @@
 import { Link as HeadlampLink, SectionBox, Table } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Tooltip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
+import { facetColumn, statusColumn } from '../components/tableColumns';
 import { detailRouteParams, parseApiVersion } from '../discovery';
-import { age, debugMessage, rawConditionStatus, sortFailingFirst, StatusChip } from '../utils';
+import { age, debugMessage, rawConditionStatus, sortFailingFirst } from '../utils';
 import { fetchReferencedResources, ResourceRef, scopeRefs } from './ManagedResources.utils';
 
 function detailParams(r: any): Record<string, string> | null {
@@ -27,7 +27,6 @@ export function ManagedResources({
   namespace?: string;
 }) {
   const [mrs, setMrs] = useState<any[] | null>(null);
-  const filterFunction = useFilterFunc();
 
   const refsKey = JSON.stringify(scopeRefs(resourceRefs, namespace));
   const scopedRefs = useMemo<ResourceRef[]>(() => JSON.parse(refsKey), [refsKey]);
@@ -54,7 +53,7 @@ export function ManagedResources({
     <SectionBox title={`Managed Resources (${mrs?.length ?? '…'})`}>
       <Table
         columns={[
-          { header: 'Kind', accessorFn: (r: any) => r.__kind ?? r.kind },
+          facetColumn('Kind', (r: any) => r.__kind ?? r.kind),
           {
             header: 'Name',
             accessorFn: (r: any) => r.metadata.name,
@@ -69,20 +68,8 @@ export function ManagedResources({
               );
             },
           },
-          {
-            header: 'Ready',
-            accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Ready'),
-            Cell: ({ row }: any) => (
-              <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Ready')} />
-            ),
-          },
-          {
-            header: 'Synced',
-            accessorFn: (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Synced'),
-            Cell: ({ row }: any) => (
-              <StatusChip status={rawConditionStatus(row.original.status?.conditions ?? [], 'Synced')} />
-            ),
-          },
+          statusColumn('Ready', (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Ready')),
+          statusColumn('Synced', (r: any) => rawConditionStatus(r.status?.conditions ?? [], 'Synced')),
           {
             header: 'Message',
             accessorFn: (r: any) => debugMessage(r.status?.conditions ?? []) ?? '—',
@@ -117,8 +104,8 @@ export function ManagedResources({
           { header: 'Age', accessorFn: (r: any) => age(r.metadata.creationTimestamp) },
         ]}
         data={sorted ?? []}
+        enableFacetedValues
         loading={sorted === null}
-        filterFunction={filterFunction}
         emptyMessage="No managed resources found"
       />
     </SectionBox>
