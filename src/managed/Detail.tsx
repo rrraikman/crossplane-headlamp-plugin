@@ -5,11 +5,12 @@ import {
   NameValueTable,
   SectionBox,
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
-import { Alert, Box, Chip } from '@mui/material';
+import { Alert, Box, Chip, Typography } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { LoadError } from '../components/LoadError';
 import { ReconcileButton } from '../components/ReconcileButton';
 import { resourcePath } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
@@ -36,33 +37,28 @@ export function ManagedResourceDetail() {
   useEffect(() => {
     setSpec(undefined);
     const apiVersion = `${group}/${version}`;
+    let cancelled = false;
     request(resourcePath(apiVersion, plural, { namespace, name }))
-      .then((data: any) => setSpec(data.spec ?? null))
+      .then((data: any) => data.spec ?? null)
       .catch(() =>
         request(resourcePath(apiVersion, plural, { namespace }))
           .then((data: any) => {
             const found = (data.items ?? []).find((r: any) => r.metadata.name === name);
-            setSpec(found?.spec ?? null);
+            return found?.spec ?? null;
           })
-          .catch(() => setSpec(null))
-      );
+          .catch(() => null)
+      )
+      .then((s: any) => {
+        if (!cancelled) setSpec(s);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [group, version, plural, namespace, name]);
 
   if (!mrs && !error) return <Loader title="Loading..." />;
 
-  if (error || !mr) {
-    return (
-      <>
-        <BackLink />
-        <Box p={2}>
-          <Alert severity="error">
-            Failed to load <strong>{plural}/{namespace ? `${namespace}/` : ''}{name}</strong>
-            {error && `: ${error.message}`}
-          </Alert>
-        </Box>
-      </>
-    );
-  }
+  if (error || !mr) return <LoadError what={`${plural}/${namespace ? `${namespace}/` : ''}${name}`} error={error} />;
 
   const conditions: any[] = mr.status?.conditions ?? [];
   const ready = rawConditionStatus(conditions, 'Ready');
@@ -91,13 +87,13 @@ export function ManagedResourceDetail() {
 
       <SectionBox title={name} headerProps={{
         titleSideActions: [
-          <Chip size="small"
+          <Chip key="status" size="small"
             label={readySyncedStatusLabel(ready, synced)}
             color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
           />,
         ],
         actions: [
-          <ReconcileButton resource={mrResource!} />,
+          <ReconcileButton key="reconcile" resource={mrResource!} />,
         ],
       }}>
         <NameValueTable
@@ -116,8 +112,8 @@ export function ManagedResourceDetail() {
 
       <EventsTable resourceName={name} resourceKind={mr.kind} namespace={namespace} />
 
-      {spec && (
-        <SectionBox title="Spec">
+      <SectionBox title="Spec">
+        {spec ? (
           <Box
             component="pre"
             sx={{
@@ -135,8 +131,12 @@ export function ManagedResourceDetail() {
           >
             {JSON.stringify(spec, null, 2)}
           </Box>
-        </SectionBox>
-      )}
+        ) : (
+          <Typography color="text.secondary" sx={{ p: 2 }}>
+            {spec === undefined ? 'Loading spec…' : 'No spec available'}
+          </Typography>
+        )}
+      </SectionBox>
     </Box>
   );
 }

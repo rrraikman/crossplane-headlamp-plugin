@@ -12,14 +12,16 @@ import { Box, Chip, Paper, Typography } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { LoadError } from '../components/LoadError';
 import { Composition } from '../resources';
 import { age, conditionStatus, StatusChip } from '../utils';
 
 export function CompositionDetail() {
   const { name } = useParams<{ name: string }>();
-  const [composition] = Composition.useGet(name);
+  const [composition, error] = Composition.useGet(name);
   const filterFunction = useFilterFunc();
 
+  if (error) return <LoadError what={name} error={error} />;
   if (!composition) return <Loader title="Loading..." />;
 
   const spec = composition.jsonData.spec ?? {};

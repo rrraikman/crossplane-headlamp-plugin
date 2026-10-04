@@ -241,10 +241,14 @@ export function CrossplaneOverview() {
           }
         })
       );
-      setFailingXrs(results.flat());
+      if (!cancelled) setFailingXrs(results.flat());
     }
 
+    let cancelled = false;
     fetchFailingXrs();
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 
@@ -273,13 +277,18 @@ export function CrossplaneOverview() {
           }
         })
       );
+      if (cancelled) return;
       setClaimsStats({
         total: results.reduce((s, r) => s + r.total, 0),
         ready: results.reduce((s, r) => s + r.ready, 0),
       });
     }
 
+    let cancelled = false;
     fetchClaimsStats();
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 

@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { LoadError } from '../components/LoadError';
 import { ReconcileButton } from '../components/ReconcileButton';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
@@ -37,14 +38,30 @@ export function ClaimDetail() {
   const [xrPlural, setXrPlural] = useState<string | null>(null);
   const [failingResource, setFailingResource] = useState<FailingResource | null>(null);
 
+  // If the route component stays mounted across claim-to-claim navigation, the
+  // previous claim's XR data must not be shown against the new one.
+  useEffect(() => {
+    setXrResourceRefs(null);
+    setXrConditions(null);
+    setXrPlural(null);
+    setFailingResource(null);
+  }, [group, version, plural, namespace, name]);
+
   useEffect(() => {
     if (!claim) return;
     const resourceRef = claim.spec?.crossplane?.resourceRef ?? claim.spec?.resourceRef;
+    let cancelled = false;
     fetchXRData(resourceRef).then(data => {
+      if (cancelled) return;
       setXrResourceRefs(data?.resourceRefs ?? []);
       setXrConditions(data?.conditions ?? []);
     });
-    resolveXRPlural(resourceRef).then(setXrPlural);
+    resolveXRPlural(resourceRef).then(p => {
+      if (!cancelled) setXrPlural(p);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [claim]);
 
   useEffect(() => {
@@ -52,25 +69,22 @@ export function ClaimDetail() {
     const xrFailing = xrConditions.some(
       (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
     );
-    if (!xrFailing) return;
-    fetchFailingManagedResource(xrResourceRefs).then(setFailingResource);
+    if (!xrFailing) {
+      setFailingResource(null);
+      return;
+    }
+    let cancelled = false;
+    fetchFailingManagedResource(xrResourceRefs).then(r => {
+      if (!cancelled) setFailingResource(r);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [xrResourceRefs, xrConditions]);
 
   if (!claims && !claimError) return <Loader title="Loading..." />;
 
-  if (claimError || !claim) {
-    return (
-      <>
-        <BackLink />
-        <Box p={2}>
-          <Alert severity="error">
-            Failed to load <strong>{namespace}/{name}</strong>
-            {claimError && `: ${claimError.message}`}
-          </Alert>
-        </Box>
-      </>
-    );
-  }
+  if (claimError || !claim) return <LoadError what={`${namespace}/${name}`} error={claimError} />;
 
   const conditions: any[] = claim.status?.conditions ?? [];
   const ready = rawConditionStatus(conditions, 'Ready');
@@ -137,13 +151,13 @@ export function ClaimDetail() {
 
       <SectionBox title={name} headerProps={{
         titleSideActions: [
-          <Chip size="small"
+          <Chip key="status" size="small"
             label={readySyncedStatusLabel(ready, synced)}
             color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
           />,
         ],
         actions: [
-          <ReconcileButton resource={claimResource!} />,
+          <ReconcileButton key="reconcile" resource={claimResource!} />,
         ],
       }}>
         <NameValueTable

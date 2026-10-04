@@ -92,4 +92,20 @@ describe('ProviderDetail', () => {
     render(<ProviderDetail />);
     expect(screen.getByText('Active')).toBeTruthy();
   });
+
+  test('shows an error instead of loading forever when the provider cannot be fetched', () => {
+    vi.mocked(Provider.useGet).mockReturnValue([null, { message: 'forbidden' }]);
+    render(<ProviderDetail />);
+    expect(screen.getByText(/Failed to load/)).toBeTruthy();
+  });
+
+  test('does not fetch or render a revision when the provider has no current revision', () => {
+    const provider = makeProvider();
+    delete (provider.jsonData.status as any).currentRevision;
+    vi.mocked(Provider.useGet).mockReturnValue([provider, null]);
+    vi.mocked(ProviderRevision.useGet).mockClear();
+    render(<ProviderDetail />);
+    expect(ProviderRevision.useGet).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Provider Revision/)).toBeNull();
+  });
 });

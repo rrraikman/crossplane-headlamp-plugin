@@ -35,6 +35,7 @@ export function ClaimList() {
       return;
     }
 
+    let cancelled = false;
     Promise.all(
       claimXrds.map(xrd => {
         const spec = xrd.jsonData.spec;
@@ -66,7 +67,12 @@ export function ClaimList() {
           )
           .catch(() => [] as ClaimRow[]);
       })
-    ).then(results => setClaims(sortByReady(results.flat())));
+    ).then(results => {
+      if (!cancelled) setClaims(sortByReady(results.flat()));
+    });
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 

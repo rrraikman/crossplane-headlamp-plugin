@@ -117,4 +117,11 @@ describe('ManagedResourceDetail', () => {
       '/apis/nopesql.crossplane.io/v1alpha1/namespaces/prod/nosqldbs/my-db'
     );
   });
+
+  test('keeps the Spec section visible with an empty-state message when no spec is available', async () => {
+    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    render(<ManagedResourceDetail />);
+    expect(screen.getByText('Spec')).toBeTruthy();
+    expect(await screen.findByText('No spec available')).toBeTruthy();
+  });
 });

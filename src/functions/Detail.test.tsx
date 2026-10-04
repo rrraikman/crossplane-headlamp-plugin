@@ -127,4 +127,19 @@ describe('FunctionDetail', () => {
     render(<FunctionDetail />);
     expect(screen.getByText('No compositions reference this function')).toBeTruthy();
   });
+
+  test('shows an error instead of loading forever when the function cannot be fetched', () => {
+    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([null, { message: 'not found' }]);
+    render(<FunctionDetail />);
+    expect(screen.getByText(/Failed to load/)).toBeTruthy();
+  });
+
+  test('does not fetch a revision when the function has no current revision', () => {
+    const fn = makeFn();
+    delete fn.jsonData.status.currentRevision;
+    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([fn, null]);
+    vi.mocked(CrossplaneFunctionRevision.useGet).mockClear();
+    render(<FunctionDetail />);
+    expect(CrossplaneFunctionRevision.useGet).not.toHaveBeenCalled();
+  });
 });

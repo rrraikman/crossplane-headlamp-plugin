@@ -12,18 +12,19 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { LoadError } from '../components/LoadError';
+import { PackageRevisionSection } from '../components/PackageRevisionSection';
 import { Composition, CrossplaneFunction, CrossplaneFunctionRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
 import { packageStatusLabel } from './Detail.utils';
 
 export function FunctionDetail() {
   const { name } = useParams<{ name: string }>();
-  const [fn] = CrossplaneFunction.useGet(name);
+  const [fn, fnError] = CrossplaneFunction.useGet(name);
   const [compositions] = Composition.useList();
   const filterFunction = useFilterFunc();
 
-  const revisionName = fn?.jsonData?.status?.currentRevision ?? '';
-  const [revision] = CrossplaneFunctionRevision.useGet(revisionName);
+  const revisionName: string = fn?.jsonData?.status?.currentRevision ?? '';
 
   const referencingCompositions = useMemo(
     () => (compositions ?? []).filter(c =>
@@ -32,6 +33,7 @@ export function FunctionDetail() {
     [compositions, name]
   );
 
+  if (fnError) return <LoadError what={name} error={fnError} />;
   if (!fn) return <Loader title="Loading..." />;
 
   const conditions: any[] = fn.jsonData?.status?.conditions ?? [];
@@ -44,7 +46,7 @@ export function FunctionDetail() {
     <Box pb={6}>
       <BackLink />
       <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
+        <Chip key="status" size="small"
           label={packageStatusLabel(installed, healthy)}
           color={overallOk ? 'success' : 'error'}
         />,
@@ -62,19 +64,12 @@ export function FunctionDetail() {
         <ConditionsTable conditions={conditions} />
       </SectionBox>
 
-      {revision && (
-        <SectionBox title={`Function Revision: ${revisionName}`}>
-          <NameValueTable
-            rows={[
-              { name: 'Package', value: revision.jsonData.spec?.package ?? '—' },
-              { name: 'Revision', value: String(revision.jsonData.spec?.revision ?? '—') },
-              { name: 'Desired State', value: revision.jsonData.spec?.desiredState ?? '—' },
-            ]}
-          />
-          <Box mt={2}>
-            <ConditionsTable conditions={revision.jsonData.status?.conditions ?? []} />
-          </Box>
-        </SectionBox>
+      {revisionName && (
+        <PackageRevisionSection
+          revisionClass={CrossplaneFunctionRevision}
+          name={revisionName}
+          label="Function Revision"
+        />
       )}
 
       <SectionBox title={`Used by Compositions (${referencingCompositions.length})`}>

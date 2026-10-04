@@ -12,6 +12,7 @@ vi.mock('../resources', () => ({
 }));
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
+  BackLink: () => null,
   Loader: ({ title }: { title: string }) => <div>{title}</div>,
   NameValueTable: ({ rows }: { rows: { name: string; value: any; hide?: boolean }[] }) => (
     <dl>{rows.filter(r => !r.hide).map(r => <div key={r.name}><dt>{r.name}</dt><dd>{r.value}</dd></div>)}</dl>
@@ -135,5 +136,25 @@ describe('XRDDetail', () => {
     vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
     render(<XRDDetail />);
     expect(screen.getByText('xdb-composition')).toBeTruthy();
+  });
+
+  test('shows an error instead of loading forever when the XRD cannot be fetched', () => {
+    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([null, { message: 'forbidden' }]);
+    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    render(<XRDDetail />);
+    expect(screen.getByText(/Failed to load/)).toBeTruthy();
+    expect(screen.getByText(/forbidden/)).toBeTruthy();
+    expect(screen.queryByText('Loading...')).toBeNull();
+  });
+
+  test('ignores compositions for a different group that shares this group as a prefix', () => {
+    const comp = {
+      metadata: { name: 'lookalike-composition', creationTimestamp: '2024-01-01T00:00:00Z' },
+      jsonData: { spec: { compositeTypeRef: { kind: 'XDatabase', apiVersion: 'example.ioextra/v1alpha1' } } },
+    };
+    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
+    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    render(<XRDDetail />);
+    expect(screen.queryByText('lookalike-composition')).toBeNull();
   });
 });

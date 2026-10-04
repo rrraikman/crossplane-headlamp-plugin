@@ -8,6 +8,8 @@ import { Box, Chip } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { LoadError } from '../components/LoadError';
+import { PackageRevisionSection } from '../components/PackageRevisionSection';
 import { Configuration, ConfigurationRevision, Provider, ProviderRevision } from '../resources';
 import { age, conditionStatus } from '../utils';
 import { packageStatusLabel } from './Detail.utils';
@@ -25,10 +27,10 @@ export function PackageDetail({ kind }: PackageDetailProps) {
   const RevisionClass = kind === 'Provider' ? ProviderRevision : ConfigurationRevision;
   const revisionLabel = kind === 'Provider' ? 'Provider Revision' : 'Configuration Revision';
 
-  const [pkg] = PackageClass.useGet(name);
-  const revisionName = pkg?.jsonData?.status?.currentRevision ?? '';
-  const [revision] = RevisionClass.useGet(revisionName);
+  const [pkg, pkgError] = PackageClass.useGet(name);
+  const revisionName: string = pkg?.jsonData?.status?.currentRevision ?? '';
 
+  if (pkgError) return <LoadError what={name} error={pkgError} />;
   if (!pkg) return <Loader title="Loading..." />;
 
   const conditions: any[] = pkg.jsonData?.status?.conditions ?? [];
@@ -40,7 +42,7 @@ export function PackageDetail({ kind }: PackageDetailProps) {
     <Box pb={6}>
       <BackLink />
       <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small"
+        <Chip key="status" size="small"
           label={packageStatusLabel(installed, healthy)}
           color={overallOk ? 'success' : 'error'}
         />,
@@ -58,19 +60,8 @@ export function PackageDetail({ kind }: PackageDetailProps) {
         <ConditionsTable conditions={conditions} />
       </SectionBox>
 
-      {revision && (
-        <SectionBox title={`${revisionLabel}: ${revisionName}`}>
-          <NameValueTable
-            rows={[
-              { name: 'Package', value: revision.jsonData.spec?.package ?? '—' },
-              { name: 'Revision', value: String(revision.jsonData.spec?.revision ?? '—') },
-              { name: 'Desired State', value: revision.jsonData.spec?.desiredState ?? '—' },
-            ]}
-          />
-          <Box mt={2}>
-            <ConditionsTable conditions={revision.jsonData.status?.conditions ?? []} />
-          </Box>
-        </SectionBox>
+      {revisionName && (
+        <PackageRevisionSection revisionClass={RevisionClass} name={revisionName} label={revisionLabel} />
       )}
 
       <EventsTable resourceName={name} resourceKind={kind} />
