@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/CommonComponents', () => ({
   BackLink: () => null,
@@ -52,19 +53,19 @@ function makeMRInstance(name: string) {
 
 describe('ManagedResourceTypeList', () => {
   test('shows loader while list is loading', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([null, null]);
+    mockedHook(KubeObject.useList).mockReturnValue([null, null]);
     render(<ManagedResourceTypeList />);
     expect(screen.getByText('Loading NoSQLDB resources...')).toBeTruthy();
   });
 
   test('shows empty message when no instances exist', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[], null]);
     render(<ManagedResourceTypeList />);
     expect(screen.getByText(/No NoSQLDB instances have been created yet/)).toBeTruthy();
   });
 
   test('shows instance names in the table', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMRInstance('db-instance-1')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMRInstance('db-instance-1')], null]);
     render(<ManagedResourceTypeList />);
     expect(screen.getByText('db-instance-1')).toBeTruthy();
   });

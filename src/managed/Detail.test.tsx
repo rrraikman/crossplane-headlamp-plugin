@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ spec: null }),
@@ -64,38 +65,38 @@ function makeMR(ready = 'True', synced = 'True') {
 
 describe('ManagedResourceDetail', () => {
   test('shows loader while MR list is loading', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([null, null]);
+    mockedHook(KubeObject.useList).mockReturnValue([null, null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('shows error when MR not found in list', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
   });
 
   test('renders MR kind and API version when loaded', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMR()], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('NoSQLDB')).toBeTruthy();
     expect(screen.getByText('nopesql.crossplane.io/v1alpha1')).toBeTruthy();
   });
 
   test('shows Ready chip when ready and synced', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMR()], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('Ready')).toBeTruthy();
   });
 
   test('shows Sync Failed chip when not synced', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR('False', 'False')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMR('False', 'False')], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
   });
 
   test('renders a reconcile button', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMR()], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
   });
@@ -108,18 +109,18 @@ describe('ManagedResourceDetail', () => {
       namespace: 'prod',
       name: 'my-db',
     });
-    vi.mocked(KubeObject.useList).mockClear();
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    mockedHook(KubeObject.useList).mockClear();
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMR()], null]);
     render(<ManagedResourceDetail />);
     expect(KubeObject.useList).toHaveBeenCalledWith({ namespace: 'prod' });
-    expect((vi.mocked(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(true);
+    expect((mockedHook(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(true);
     expect(request).toHaveBeenCalledWith(
       '/apis/nopesql.crossplane.io/v1alpha1/namespaces/prod/nosqldbs/my-db'
     );
   });
 
   test('keeps the Spec section visible with an empty-state message when no spec is available', async () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeMR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeMR()], null]);
     render(<ManagedResourceDetail />);
     expect(screen.getByText('Spec')).toBeTruthy();
     expect(await screen.findByText('No spec available')).toBeTruthy();

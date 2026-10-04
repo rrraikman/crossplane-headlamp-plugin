@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   Provider: { useList: vi.fn().mockReturnValue([null, null]) },
@@ -46,24 +47,24 @@ function makeProvider(name: string) {
 
 describe('PackageList', () => {
   test('shows empty message when no providers', () => {
-    vi.mocked(Provider.useList).mockReturnValue([[], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
+    mockedHook(Provider.useList).mockReturnValue([[], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[], null]);
     render(<PackageList />);
     expect(screen.getByText('No providers found')).toBeTruthy();
     expect(screen.getByText('No configurations found')).toBeTruthy();
   });
 
   test('renders provider names in the table', () => {
-    vi.mocked(Provider.useList).mockReturnValue([[makeProvider('provider-aws'), makeProvider('provider-gcp')], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
+    mockedHook(Provider.useList).mockReturnValue([[makeProvider('provider-aws'), makeProvider('provider-gcp')], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[], null]);
     render(<PackageList />);
     expect(screen.getByText('provider-aws')).toBeTruthy();
     expect(screen.getByText('provider-gcp')).toBeTruthy();
   });
 
   test('renders configuration names in the table', () => {
-    vi.mocked(Provider.useList).mockReturnValue([[], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[makeProvider('platform-config')], null]);
+    mockedHook(Provider.useList).mockReturnValue([[], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[makeProvider('platform-config')], null]);
     render(<PackageList />);
     expect(screen.getByText('platform-config')).toBeTruthy();
   });

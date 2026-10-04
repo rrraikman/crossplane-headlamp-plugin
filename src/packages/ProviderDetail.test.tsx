@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   Provider: { useGet: vi.fn().mockReturnValue([null, null]) },
@@ -49,22 +50,22 @@ function makeProvider(conditionOverrides: any[] = []) {
 
 describe('ProviderDetail', () => {
   test('shows loader while provider is loading', () => {
-    vi.mocked(Provider.useGet).mockReturnValue([null, null]);
+    mockedHook(Provider.useGet).mockReturnValue([null, null]);
     render(<ProviderDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('renders package and revision when loaded', () => {
-    vi.mocked(Provider.useGet).mockReturnValue([makeProvider(), null]);
-    vi.mocked(ProviderRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Provider.useGet).mockReturnValue([makeProvider(), null]);
+    mockedHook(ProviderRevision.useGet).mockReturnValue([null, null]);
     render(<ProviderDetail />);
     expect(screen.getByText('xpkg.upbound.io/my-provider:v1.0.0')).toBeTruthy();
     expect(screen.getByText('my-provider-abc123')).toBeTruthy();
   });
 
   test('shows Healthy chip when installed and healthy', () => {
-    vi.mocked(Provider.useGet).mockReturnValue([makeProvider(), null]);
-    vi.mocked(ProviderRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Provider.useGet).mockReturnValue([makeProvider(), null]);
+    mockedHook(ProviderRevision.useGet).mockReturnValue([null, null]);
     render(<ProviderDetail />);
     expect(screen.getByText('Healthy')).toBeTruthy();
   });
@@ -74,8 +75,8 @@ describe('ProviderDetail', () => {
       { type: 'Installed', status: 'True', reason: 'ActivePackageRevision', message: '' },
       { type: 'Healthy', status: 'False', reason: 'Degraded', message: '' },
     ]);
-    vi.mocked(Provider.useGet).mockReturnValue([provider, null]);
-    vi.mocked(ProviderRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Provider.useGet).mockReturnValue([provider, null]);
+    mockedHook(ProviderRevision.useGet).mockReturnValue([null, null]);
     render(<ProviderDetail />);
     expect(screen.getByText('Unhealthy')).toBeTruthy();
   });
@@ -87,14 +88,14 @@ describe('ProviderDetail', () => {
         status: { conditions: [] },
       },
     };
-    vi.mocked(Provider.useGet).mockReturnValue([makeProvider(), null]);
-    vi.mocked(ProviderRevision.useGet).mockReturnValue([revision, null]);
+    mockedHook(Provider.useGet).mockReturnValue([makeProvider(), null]);
+    mockedHook(ProviderRevision.useGet).mockReturnValue([revision, null]);
     render(<ProviderDetail />);
     expect(screen.getByText('Active')).toBeTruthy();
   });
 
   test('shows an error instead of loading forever when the provider cannot be fetched', () => {
-    vi.mocked(Provider.useGet).mockReturnValue([null, { message: 'forbidden' }]);
+    mockedHook(Provider.useGet).mockReturnValue([null, { message: 'forbidden' }]);
     render(<ProviderDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
   });
@@ -102,8 +103,8 @@ describe('ProviderDetail', () => {
   test('does not fetch or render a revision when the provider has no current revision', () => {
     const provider = makeProvider();
     delete (provider.jsonData.status as any).currentRevision;
-    vi.mocked(Provider.useGet).mockReturnValue([provider, null]);
-    vi.mocked(ProviderRevision.useGet).mockClear();
+    mockedHook(Provider.useGet).mockReturnValue([provider, null]);
+    mockedHook(ProviderRevision.useGet).mockClear();
     render(<ProviderDetail />);
     expect(ProviderRevision.useGet).not.toHaveBeenCalled();
     expect(screen.queryByText(/Provider Revision/)).toBeNull();

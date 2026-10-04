@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   Configuration: { useGet: vi.fn().mockReturnValue([null, null]) },
@@ -49,22 +50,22 @@ function makeConfiguration(conditionOverrides: any[] = []) {
 
 describe('ConfigurationDetail', () => {
   test('shows loader while configuration is loading', () => {
-    vi.mocked(Configuration.useGet).mockReturnValue([null, null]);
+    mockedHook(Configuration.useGet).mockReturnValue([null, null]);
     render(<ConfigurationDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('renders package and revision when loaded', () => {
-    vi.mocked(Configuration.useGet).mockReturnValue([makeConfiguration(), null]);
-    vi.mocked(ConfigurationRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Configuration.useGet).mockReturnValue([makeConfiguration(), null]);
+    mockedHook(ConfigurationRevision.useGet).mockReturnValue([null, null]);
     render(<ConfigurationDetail />);
     expect(screen.getByText('xpkg.upbound.io/my-config:v1.0.0')).toBeTruthy();
     expect(screen.getByText('my-config-abc123')).toBeTruthy();
   });
 
   test('shows Healthy chip when installed and healthy', () => {
-    vi.mocked(Configuration.useGet).mockReturnValue([makeConfiguration(), null]);
-    vi.mocked(ConfigurationRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Configuration.useGet).mockReturnValue([makeConfiguration(), null]);
+    mockedHook(ConfigurationRevision.useGet).mockReturnValue([null, null]);
     render(<ConfigurationDetail />);
     expect(screen.getByText('Healthy')).toBeTruthy();
   });
@@ -73,8 +74,8 @@ describe('ConfigurationDetail', () => {
     const config = makeConfiguration([
       { type: 'Installed', status: 'False', reason: 'InactivePackageRevision', message: '' },
     ]);
-    vi.mocked(Configuration.useGet).mockReturnValue([config, null]);
-    vi.mocked(ConfigurationRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Configuration.useGet).mockReturnValue([config, null]);
+    mockedHook(ConfigurationRevision.useGet).mockReturnValue([null, null]);
     render(<ConfigurationDetail />);
     expect(screen.getByText('Not Installed')).toBeTruthy();
   });

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -57,19 +58,19 @@ function makeXRD(name: string, claimKind = 'Database', claimPlural = 'databases'
 
 describe('ClaimList', () => {
   test('shows loader while XRDs are loading', () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
     render(<ClaimList />);
     expect(screen.getByText('Loading claims...')).toBeTruthy();
   });
 
   test('shows message when no XRDs define claim types', () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
     render(<ClaimList />);
     expect(screen.getByText(/No XRDs in this cluster define a claim type/)).toBeTruthy();
   });
 
   test('shows available claim types when there are XRDs but no claims', async () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
@@ -80,7 +81,7 @@ describe('ClaimList', () => {
   });
 
   test('shows error message in Message column for a failing claim', async () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
@@ -104,7 +105,7 @@ describe('ClaimList', () => {
   });
 
   test('shows dash in Message column when claim has no error message', async () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io')],
       null,
     ]);

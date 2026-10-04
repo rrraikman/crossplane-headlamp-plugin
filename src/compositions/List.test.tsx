@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   Composition: { useList: vi.fn().mockReturnValue([null, null]) },
@@ -42,13 +43,13 @@ function makeComposition(name: string, kind = 'XDatabase', mode = 'Resources') {
 
 describe('CompositionList', () => {
   test('shows empty message when no compositions', () => {
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<CompositionList />);
     expect(screen.getByText('No compositions found')).toBeTruthy();
   });
 
   test('renders composition names', () => {
-    vi.mocked(Composition.useList).mockReturnValue([
+    mockedHook(Composition.useList).mockReturnValue([
       [makeComposition('xdatabase-composition'), makeComposition('xnetwork-composition', 'XNetwork')],
       null,
     ]);
@@ -58,7 +59,7 @@ describe('CompositionList', () => {
   });
 
   test('renders composite type and mode columns', () => {
-    vi.mocked(Composition.useList).mockReturnValue([[makeComposition('my-comp', 'XApp', 'Pipeline')], null]);
+    mockedHook(Composition.useList).mockReturnValue([[makeComposition('my-comp', 'XApp', 'Pipeline')], null]);
     render(<CompositionList />);
     expect(screen.getByText('XApp')).toBeTruthy();
     expect(screen.getByText('Pipeline')).toBeTruthy();

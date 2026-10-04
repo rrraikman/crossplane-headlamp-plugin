@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   CrossplaneFunction: { useGet: vi.fn().mockReturnValue([null, null]) },
@@ -70,35 +71,35 @@ function makeFn(conditionOverrides: any[] = []) {
 
 describe('FunctionDetail', () => {
   test('shows loader while function is loading', () => {
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([null, null]);
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([null, null]);
     render(<FunctionDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('renders package and revision when loaded', () => {
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
-    vi.mocked(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
+    mockedHook(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<FunctionDetail />);
     expect(screen.getByText('xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.6.0')).toBeTruthy();
     expect(screen.getByText('fn-pat-abc')).toBeTruthy();
   });
 
   test('shows Healthy chip when installed and healthy', () => {
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
-    vi.mocked(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
+    mockedHook(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<FunctionDetail />);
     expect(screen.getByText('Healthy')).toBeTruthy();
   });
 
   test('shows Unhealthy chip when not healthy', () => {
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([makeFn([
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([makeFn([
       { type: 'Installed', status: 'True', reason: 'ActivePackageRevision', message: '' },
       { type: 'Healthy', status: 'False', reason: 'Degraded', message: '' },
     ]), null]);
-    vi.mocked(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<FunctionDetail />);
     expect(screen.getByText('Unhealthy')).toBeTruthy();
   });
@@ -113,23 +114,23 @@ describe('FunctionDetail', () => {
         },
       },
     };
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
-    vi.mocked(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
+    mockedHook(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
     render(<FunctionDetail />);
     expect(screen.getByText('my-composition')).toBeTruthy();
   });
 
   test('shows no compositions message when none reference the function', () => {
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
-    vi.mocked(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([makeFn(), null]);
+    mockedHook(CrossplaneFunctionRevision.useGet).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<FunctionDetail />);
     expect(screen.getByText('No compositions reference this function')).toBeTruthy();
   });
 
   test('shows an error instead of loading forever when the function cannot be fetched', () => {
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([null, { message: 'not found' }]);
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([null, { message: 'not found' }]);
     render(<FunctionDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
   });
@@ -137,8 +138,8 @@ describe('FunctionDetail', () => {
   test('does not fetch a revision when the function has no current revision', () => {
     const fn = makeFn();
     delete fn.jsonData.status.currentRevision;
-    vi.mocked(CrossplaneFunction.useGet).mockReturnValue([fn, null]);
-    vi.mocked(CrossplaneFunctionRevision.useGet).mockClear();
+    mockedHook(CrossplaneFunction.useGet).mockReturnValue([fn, null]);
+    mockedHook(CrossplaneFunctionRevision.useGet).mockClear();
     render(<FunctionDetail />);
     expect(CrossplaneFunctionRevision.useGet).not.toHaveBeenCalled();
   });

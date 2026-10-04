@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   CrossplaneFunction: { useList: vi.fn().mockReturnValue([null, null]) },
@@ -47,13 +48,13 @@ function makeFn(name: string) {
 
 describe('FunctionList', () => {
   test('shows empty message when no functions', () => {
-    vi.mocked(CrossplaneFunction.useList).mockReturnValue([[], null]);
+    mockedHook(CrossplaneFunction.useList).mockReturnValue([[], null]);
     render(<FunctionList />);
     expect(screen.getByText('No functions found')).toBeTruthy();
   });
 
   test('renders function names', () => {
-    vi.mocked(CrossplaneFunction.useList).mockReturnValue([
+    mockedHook(CrossplaneFunction.useList).mockReturnValue([
       [makeFn('function-patch-and-transform'), makeFn('function-go-templating')],
       null,
     ]);

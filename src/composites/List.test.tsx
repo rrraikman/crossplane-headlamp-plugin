@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -61,13 +62,13 @@ function makeXRItem(name: string) {
 
 describe('CompositeResourceList', () => {
   test('shows loader while XRDs are loading', () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
     render(<CompositeResourceList />);
     expect(screen.getByText('Loading composite resources...')).toBeTruthy();
   });
 
   test('shows empty message when no XRs exist', async () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
     render(<CompositeResourceList />);
     await waitFor(() => {
       expect(screen.getByText('No composite resources found')).toBeTruthy();
@@ -75,7 +76,7 @@ describe('CompositeResourceList', () => {
   });
 
   test('shows XR names after async fetch', async () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
