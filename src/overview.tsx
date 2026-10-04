@@ -8,7 +8,7 @@ import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Paper, Tooltip, Typography, useTheme } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { CrossplaneInfoButton } from './components/CrossplaneInfoDialog';
-import { detailRouteParams } from './discovery';
+import { detailRouteParams, parseApiVersion } from './discovery';
 import {
   countInstances,
   crdToMRType,
@@ -24,7 +24,8 @@ import {
   resolveDetailRoute,
 } from './overview.utils';
 import { CompositeResourceDefinition, Composition, Configuration, Provider } from './resources';
-import { failingCondition, getReferenceableVersion, isHealthy } from './utils';
+import { failingCondition, isHealthy, rawConditionStatus } from './utils';
+import { useXRDInstanceLists } from './xrdInstances';
 
 function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
   const filterFunction = useFilterFunc<NotReadyEntry>();
@@ -160,135 +161,77 @@ export function CrossplaneOverview() {
   const [configurations] = Configuration.useList();
   const [xrds] = CompositeResourceDefinition.useList();
   const [compositions] = Composition.useList();
-  const [failingXrs, setFailingXrs] = useState<NotReadyEntry[]>([]);
-  const [claimsStats, setClaimsStats] = useState<{ total: number; ready: number } | null>(null);
   const [mrStats, setMrStats] = useState<{ total: number; ready: number } | null>(null);
+  const xrInstances = useXRDInstanceLists(xrds, 'composite');
+  const claimInstances = useXRDInstanceLists(xrds, 'claim');
 
-  const xrdsKey = useMemo(
-    () => xrds?.map(x => x.metadata.name).sort().join(',') ?? '',
-    [xrds]
+  // Unhealthy composite resources across every XRD.
+  const failingXrs = useMemo<NotReadyEntry[]>(
+    () =>
+      (xrInstances.lists ?? []).flatMap(({ xrd, group, version, plural, kind, items }) =>
+        items
+          .filter((item: any) => !isHealthy(item.status?.conditions))
+          .map((item: any): NotReadyEntry => {
+            const failing = failingCondition(item.status?.conditions);
+            const entry = {
+              conditionType: failing?.type ?? 'Ready',
+              reason: failing?.reason ?? 'Unknown',
+              message: failing?.message || 'No message reported',
+            };
+
+            // If this XR was created from a claim, surface the claim instead.
+            // Claims are the user-facing concept; XRs are an implementation detail.
+            const claimRef = item.spec?.crossplane?.claimRef ?? item.spec?.claimRef;
+            if (claimRef?.name) {
+              const claimApi = parseApiVersion(claimRef.apiVersion ?? '');
+              return {
+                ...entry,
+                kind: claimRef.kind ?? kind,
+                name: claimRef.name,
+                detailRoute: {
+                  routeName: 'crossplane-claim-detail',
+                  params: {
+                    group: claimApi.group || group,
+                    version: claimApi.version || version,
+                    plural:
+                      xrd.jsonData.spec.claimNames?.plural ??
+                      `${(claimRef.kind ?? '').toLowerCase()}s`,
+                    namespace: claimRef.namespace ?? 'default',
+                    name: claimRef.name,
+                  },
+                },
+              };
+            }
+
+            return {
+              ...entry,
+              kind,
+              name: item.metadata.namespace
+                ? `${item.metadata.namespace}/${item.metadata.name}`
+                : item.metadata.name,
+              detailRoute: {
+                routeName: 'crossplane-composite-detail',
+                params: detailRouteParams(
+                  `${group}/${version}`,
+                  plural,
+                  item.metadata.name,
+                  item.metadata.namespace
+                ),
+              },
+            };
+          })
+      ),
+    [xrInstances.lists]
   );
 
-  // Fan out to all XRD groups and collect unhealthy composite resources.
-  useEffect(() => {
-    if (!xrds || xrds.length === 0) { setFailingXrs([]); return; }
-
-    async function fetchFailingXrs() {
-      const results = await Promise.all(
-        xrds!.map(async xrd => {
-          const spec = xrd.jsonData.spec;
-          const group = spec.group;
-          const version = getReferenceableVersion(spec);
-          const plural = spec.names.plural;
-          const kind = spec.names.kind;
-
-          try {
-            const data: any = await request(`/apis/${group}/${version}/${plural}`);
-            return (data.items ?? [])
-              .filter((item: any) => !isHealthy(item.status?.conditions))
-              .map((item: any): NotReadyEntry => {
-                const failing = failingCondition(item.status?.conditions);
-                const entry = {
-                  conditionType: failing?.type ?? 'Ready',
-                  reason: failing?.reason ?? 'Unknown',
-                  message: failing?.message || 'No message reported',
-                };
-
-                // If this XR was created from a claim, surface the claim instead.
-                // Claims are the user-facing concept; XRs are an implementation detail.
-                const claimRef =
-                  item.spec?.crossplane?.claimRef ?? item.spec?.claimRef;
-                if (claimRef?.name) {
-                  const [claimGroup, claimVersion] = (claimRef.apiVersion ?? '').split('/');
-                  return {
-                    ...entry,
-                    kind: claimRef.kind ?? kind,
-                    name: claimRef.name,
-                    detailRoute: {
-                      routeName: 'crossplane-claim-detail',
-                      params: {
-                        group: claimGroup || group,
-                        version: claimVersion || version,
-                        plural: spec.claimNames?.plural ?? claimRef.kind?.toLowerCase() + 's',
-                        namespace: claimRef.namespace ?? 'default',
-                        name: claimRef.name,
-                      },
-                    },
-                  };
-                }
-
-                return {
-                  ...entry,
-                  kind,
-                  name: item.metadata.namespace
-                    ? `${item.metadata.namespace}/${item.metadata.name}`
-                    : item.metadata.name,
-                  detailRoute: {
-                    routeName: 'crossplane-composite-detail',
-                    params: detailRouteParams(
-                      `${group}/${version}`,
-                      plural,
-                      item.metadata.name,
-                      item.metadata.namespace
-                    ),
-                  },
-                };
-              });
-          } catch {
-            return [];
-          }
-        })
-      );
-      if (!cancelled) setFailingXrs(results.flat());
-    }
-
-    let cancelled = false;
-    fetchFailingXrs();
-    return () => {
-      cancelled = true;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xrdsKey]);
-
-  // Fan out to XRDs with claim types and tally ready/total counts.
-  useEffect(() => {
-    if (!xrds) return;
-    const claimXrds = xrds.filter(x => !!x.jsonData.spec.claimNames?.plural);
-    if (claimXrds.length === 0) { setClaimsStats({ total: 0, ready: 0 }); return; }
-
-    async function fetchClaimsStats() {
-      const results = await Promise.all(
-        claimXrds.map(async xrd => {
-          const spec = xrd.jsonData.spec;
-          const group = spec.group;
-          const version = getReferenceableVersion(spec);
-          const plural = spec.claimNames.plural;
-          try {
-            const data: any = await request(`/apis/${group}/${version}/${plural}`);
-            const items: any[] = data.items ?? [];
-            const ready = items.filter(
-              item => item.status?.conditions?.find((c: any) => c.type === 'Ready')?.status === 'True'
-            ).length;
-            return { total: items.length, ready };
-          } catch {
-            return { total: 0, ready: 0 };
-          }
-        })
-      );
-      if (cancelled) return;
-      setClaimsStats({
-        total: results.reduce((s, r) => s + r.total, 0),
-        ready: results.reduce((s, r) => s + r.ready, 0),
-      });
-    }
-
-    let cancelled = false;
-    fetchClaimsStats();
-    return () => {
-      cancelled = true;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xrdsKey]);
+  const claimsStats = useMemo(() => {
+    if (!claimInstances.lists) return null;
+    const items = claimInstances.lists.flatMap(l => l.items);
+    const ready = items.filter(
+      (item: any) => rawConditionStatus(item.status?.conditions, 'Ready') === 'True'
+    ).length;
+    return { total: items.length, ready };
+  }, [claimInstances.lists]);
 
   // Discover managed resource CRDs and tally ready/total counts. Counting is
   // cheap (limit=1); only types that have instances are listed in full to read
@@ -341,6 +284,8 @@ export function CrossplaneOverview() {
 
   return (
     <Box pb={6}>
+      {xrInstances.watchers}
+      {claimInstances.watchers}
       <Box display="flex" justifyContent="flex-end" px={2} pt={1}>
         <CrossplaneInfoButton />
       </Box>

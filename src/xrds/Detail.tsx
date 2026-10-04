@@ -1,4 +1,3 @@
-import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import {
   Link as HeadlampLink,
   Loader,
@@ -8,13 +7,14 @@ import {
 } from '@kinvolk/headlamp-plugin/lib/CommonComponents';
 import { useFilterFunc } from '@kinvolk/headlamp-plugin/lib/Utils';
 import { Box, Chip, Tooltip, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
 import { detailRouteParams, parseApiVersion } from '../discovery';
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { age, debugMessage, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
+import { useXRDInstanceLists } from '../xrdInstances';
 import { buildNotReadyInstances, NotReadyInstance, sortByReady } from './Detail.utils';
 import { SchemaTree } from './SchemaTree';
 
@@ -38,34 +38,16 @@ export function XRDDetail() {
   const { name } = useParams<{ name: string }>();
   const [xrd, xrdError] = CompositeResourceDefinition.useGet(name);
   const [compositions] = Composition.useList();
-  const [xrs, setXrs] = useState<any[] | null>(null);
-  const [claims, setClaims] = useState<any[] | null>(null);
   const filterFunction = useFilterFunc<any>();
 
-  useEffect(() => {
-    if (!xrd) return;
-
-    const group = xrd.jsonData.spec.group;
-    const version = getReferenceableVersion(xrd.jsonData.spec);
-    const plural = xrd.jsonData.spec.names.plural;
-
-    let cancelled = false;
-    request(`/apis/${group}/${version}/${plural}`)
-      .then((data: any) => !cancelled && setXrs(data.items ?? []))
-      .catch(() => !cancelled && setXrs([]));
-
-    if (xrd.jsonData.spec.claimNames?.plural) {
-      const claimPlural = xrd.jsonData.spec.claimNames.plural;
-      request(`/apis/${group}/${version}/${claimPlural}`)
-        .then((data: any) => !cancelled && setClaims(data.items ?? []))
-        .catch(() => !cancelled && setClaims([]));
-    } else {
-      setClaims(null);
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [xrd?.metadata.name]);
+  const xrdList = useMemo(() => (xrd ? [xrd] : null), [xrd]);
+  const compositeLists = useXRDInstanceLists(xrdList, 'composite');
+  const claimLists = useXRDInstanceLists(xrdList, 'claim');
+  const xrs: any[] | null = compositeLists.lists ? compositeLists.lists[0]?.items ?? [] : null;
+  // null hides the Claims section for XRDs without a claim type.
+  const claims: any[] | null = xrd?.jsonData.spec.claimNames?.plural
+    ? claimLists.lists?.[0]?.items ?? null
+    : null;
 
   if (xrdError) return <LoadError what={name} error={xrdError} />;
   if (!xrd) return <Loader title="Loading..." />;
@@ -165,6 +147,8 @@ export function XRDDetail() {
 
   return (
     <Box pb={6}>
+      {compositeLists.watchers}
+      {claimLists.watchers}
       {/* 1. Metadata */}
       <SectionBox title={name} headerProps={{ titleSideActions: [
         <Chip key="status" size="small" label={established ? 'Established' : 'Not Established'} color={established ? 'success' : 'error'} />,

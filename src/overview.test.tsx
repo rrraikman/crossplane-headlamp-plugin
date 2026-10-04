@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, test, vi } from 'vitest';
-import { mockedHook } from './testing';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { KubeObject } from './__mocks__/headlamp-k8s-cluster';
+import { mockedHook, mockListsByPlural } from './testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -83,6 +84,10 @@ function makeXRD(name: string, condStatus = 'True', withClaimNames = false) {
 }
 
 describe('CrossplaneOverview', () => {
+  beforeEach(() => {
+    mockListsByPlural(KubeObject.useList, {});
+  });
+
   test('shows loading dashes while resources are loading', () => {
     mockedHook(Provider.useList).mockReturnValue([null, null]);
     mockedHook(Configuration.useList).mockReturnValue([null, null]);
@@ -136,8 +141,8 @@ describe('CrossplaneOverview', () => {
       null,
     ]);
     mockedHook(Composition.useList).mockReturnValue([[], null]);
-    mockRequest.mockResolvedValue({
-      items: [
+    mockListsByPlural(KubeObject.useList, {
+      xdatabases: [
         {
           metadata: { name: 'my-xdb', creationTimestamp: '2024-01-01T00:00:00Z' },
           spec: {},
@@ -163,8 +168,8 @@ describe('CrossplaneOverview', () => {
       null,
     ]);
     mockedHook(Composition.useList).mockReturnValue([[], null]);
-    mockRequest.mockResolvedValue({
-      items: [
+    mockListsByPlural(KubeObject.useList, {
+      xdatabases: [
         {
           metadata: { name: 'my-xdb', creationTimestamp: '2024-01-01T00:00:00Z' },
           spec: {
