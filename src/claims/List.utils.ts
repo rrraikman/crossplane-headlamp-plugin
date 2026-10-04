@@ -1,3 +1,5 @@
+import { sortFailingFirst } from '../utils';
+
 export interface ClaimRow {
   name: string;
   namespace: string;
@@ -12,10 +14,9 @@ export interface ClaimRow {
 }
 
 export function sortByReady(rows: ClaimRow[]): ClaimRow[] {
-  return [...rows].sort((a, b) => {
-    const aOk = a.ready === 'True' && a.synced === 'True';
-    const bOk = b.ready === 'True' && b.synced === 'True';
-    if (aOk !== bOk) return Number(aOk) - Number(bOk);
-    return a.namespace.localeCompare(b.namespace) || a.name.localeCompare(b.name);
-  });
+  return sortFailingFirst(
+    rows,
+    r => r.ready === 'True' && r.synced === 'True',
+    (a, b) => a.namespace.localeCompare(b.namespace) || a.name.localeCompare(b.name)
+  );
 }

@@ -1,6 +1,7 @@
 import { request } from '@kinvolk/headlamp-plugin/lib/ApiProxy';
 import { detailRouteParams, discoverResource, resourcePath } from '../discovery';
 import { ResourceRef, scopeRefs } from '../managed/ManagedResources.utils';
+import { failingCondition } from '../utils';
 
 export async function resolveXRPlural(xrRef: any): Promise<string> {
   if (!xrRef?.apiVersion || !xrRef?.kind) return (xrRef?.kind ?? '').toLowerCase() + 's';
@@ -29,11 +30,6 @@ export async function fetchXRData(resourceRef: any): Promise<XRData | null> {
   }
 }
 
-export async function fetchXRResourceRefs(resourceRef: any): Promise<any[] | null> {
-  const data = await fetchXRData(resourceRef);
-  return data?.resourceRefs ?? null;
-}
-
 export interface FailingResource {
   kind: string;
   name: string;
@@ -52,11 +48,7 @@ export async function fetchFailingManagedResource(
       const { plural, namespaced } = await discoverResource(ref.apiVersion, ref.kind);
       const namespace = namespaced === false ? undefined : ref.namespace;
       const obj = await request(resourcePath(ref.apiVersion, plural, { namespace, name: ref.name }));
-      const conditions: any[] = obj.status?.conditions ?? [];
-      const failing = conditions.find(
-        (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
-      );
-      return failing
+      return failingCondition(obj.status?.conditions)
         ? {
             kind: ref.kind,
             name: ref.name,

@@ -24,7 +24,7 @@ import {
   resolveDetailRoute,
 } from './overview.utils';
 import { CompositeResourceDefinition, Composition, Configuration, Provider } from './resources';
-import { getReferenceableVersion } from './utils';
+import { failingCondition, getReferenceableVersion, isHealthy } from './utils';
 
 function NotReadyPanel({ items }: { items: NotReadyEntry[] }) {
   const filterFunction = useFilterFunc<NotReadyEntry>();
@@ -185,18 +185,9 @@ export function CrossplaneOverview() {
           try {
             const data: any = await request(`/apis/${group}/${version}/${plural}`);
             return (data.items ?? [])
-              .filter((item: any) => {
-                const conds = item.status?.conditions ?? [];
-                return (
-                  conds.find((c: any) => c.type === 'Ready')?.status !== 'True' ||
-                  conds.find((c: any) => c.type === 'Synced')?.status !== 'True'
-                );
-              })
+              .filter((item: any) => !isHealthy(item.status?.conditions))
               .map((item: any): NotReadyEntry => {
-                const conds = item.status?.conditions ?? [];
-                const failing = conds.find(
-                  (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
-                );
+                const failing = failingCondition(item.status?.conditions);
                 const entry = {
                   conditionType: failing?.type ?? 'Ready',
                   reason: failing?.reason ?? 'Unknown',

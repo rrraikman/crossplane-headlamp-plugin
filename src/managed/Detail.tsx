@@ -14,7 +14,7 @@ import { LoadError } from '../components/LoadError';
 import { ReconcileButton } from '../components/ReconcileButton';
 import { resourcePath } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
-import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
+import { age, debugMessage, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
 export function ManagedResourceDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -65,13 +65,7 @@ export function ManagedResourceDetail() {
   const synced = rawConditionStatus(conditions, 'Synced');
   const overallOk = ready === 'True' && synced === 'True';
 
-  const errorMessage = (() => {
-    if (overallOk) return null;
-    const failing = conditions.find(
-      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
-    );
-    return failing?.message ?? null;
-  })();
+  const errorMessage = overallOk ? null : debugMessage(conditions);
 
   return (
     <Box pb={6}>

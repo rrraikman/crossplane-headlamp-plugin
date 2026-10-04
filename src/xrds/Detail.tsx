@@ -14,8 +14,8 @@ import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
 import { detailRouteParams, parseApiVersion } from '../discovery';
 import { CompositeResourceDefinition, Composition } from '../resources';
-import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
-import { buildNotReadyInstances, debugMessage, NotReadyInstance, sortByReady } from './Detail.utils';
+import { age, debugMessage, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
+import { buildNotReadyInstances, NotReadyInstance, sortByReady } from './Detail.utils';
 import { SchemaTree } from './SchemaTree';
 
 function MessageCell({ conditions }: { conditions: any[] }) {

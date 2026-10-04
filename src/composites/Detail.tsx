@@ -15,7 +15,7 @@ import { LoadError } from '../components/LoadError';
 import { ReconcileButton } from '../components/ReconcileButton';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
-import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
+import { age, debugMessage, isHealthy, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 
 export function CompositeDetail() {
   const { group, version, plural, namespace, name } = useParams<{
@@ -37,11 +37,7 @@ export function CompositeDetail() {
 
   useEffect(() => {
     if (!xr) return;
-    const conditions: any[] = xr.status?.conditions ?? [];
-    const failing = conditions.some(
-      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
-    );
-    if (!failing) {
+    if (isHealthy(xr.status?.conditions)) {
       setFailingResource(null);
       return;
     }
@@ -64,13 +60,7 @@ export function CompositeDetail() {
   const synced = rawConditionStatus(conditions, 'Synced');
   const overallOk = ready === 'True' && synced === 'True';
 
-  const errorMessage = (() => {
-    if (overallOk) return null;
-    const failing = conditions.find(
-      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
-    );
-    return failing?.message ?? null;
-  })();
+  const errorMessage = overallOk ? null : debugMessage(conditions);
 
   const errorRoute: { routeName: string; params: Record<string, string> } | null = failingResource
     ? { routeName: 'crossplane-managed-detail', params: failingResource.routeParams }

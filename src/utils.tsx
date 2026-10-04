@@ -30,8 +30,38 @@ export function rawConditionStatus(conditions: any[], type: string): string {
   return cond?.status ?? 'Unknown';
 }
 
-export function getCondition(resource: any, type: string): any | undefined {
-  return resource.jsonData?.status?.conditions?.find((c: any) => c.type === type);
+export function isHealthy(conditions: any[] | undefined): boolean {
+  return (
+    rawConditionStatus(conditions ?? [], 'Ready') === 'True' &&
+    rawConditionStatus(conditions ?? [], 'Synced') === 'True'
+  );
+}
+
+// Synced first: a sync failure is usually the root cause of Ready=False.
+export function failingCondition(conditions: any[] | undefined): any | undefined {
+  for (const type of ['Synced', 'Ready']) {
+    const cond = conditions?.find((c: any) => c.type === type);
+    if (cond && cond.status !== 'True') return cond;
+  }
+  return undefined;
+}
+
+// The most actionable message: a failing Synced message, else a failing Ready one.
+export function debugMessage(conditions: any[] | undefined): string | null {
+  for (const type of ['Synced', 'Ready']) {
+    const cond = conditions?.find((c: any) => c.type === type);
+    if (cond && cond.status !== 'True' && cond.message) return cond.message;
+  }
+  return null;
+}
+
+// Stable sort that puts unhealthy items first, then applies the tiebreak.
+export function sortFailingFirst<T>(
+  items: T[],
+  isOk: (item: T) => boolean,
+  tiebreak: (a: T, b: T) => number = () => 0
+): T[] {
+  return [...items].sort((a, b) => Number(isOk(a)) - Number(isOk(b)) || tiebreak(a, b));
 }
 
 export function readySyncedStatusLabel(ready: string, synced: string): string {

@@ -1,3 +1,5 @@
+import { sortFailingFirst } from '../utils';
+
 export interface XRRow {
   name: string;
   namespace?: string;
@@ -11,10 +13,9 @@ export interface XRRow {
 }
 
 export function sortByReady(rows: XRRow[]): XRRow[] {
-  return [...rows].sort((a, b) => {
-    const aOk = a.ready === 'True' && a.synced === 'True';
-    const bOk = b.ready === 'True' && b.synced === 'True';
-    if (aOk !== bOk) return Number(aOk) - Number(bOk);
-    return (a.namespace ?? '').localeCompare(b.namespace ?? '') || a.name.localeCompare(b.name);
-  });
+  return sortFailingFirst(
+    rows,
+    r => r.ready === 'True' && r.synced === 'True',
+    (a, b) => (a.namespace ?? '').localeCompare(b.namespace ?? '') || a.name.localeCompare(b.name)
+  );
 }

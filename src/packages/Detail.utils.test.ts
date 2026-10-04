@@ -22,4 +22,8 @@ describe('packageStatusLabel', () => {
   test('Not Installed takes priority when both are not True', () => {
     expect(packageStatusLabel('False', 'False')).toBe('Not Installed');
   });
+
+  test('returns Unhealthy when installed is True but healthy is Unknown', () => {
+    expect(packageStatusLabel('True', 'Unknown')).toBe('Unhealthy');
+  });
 });

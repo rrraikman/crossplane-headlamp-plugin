@@ -12,9 +12,10 @@ import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
 import { LoadError } from '../components/LoadError';
 import { ReconcileButton } from '../components/ReconcileButton';
+import { detailRouteParams } from '../discovery';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
-import { age, rawConditionStatus, readySyncedStatusLabel } from '../utils';
+import { age, debugMessage, isHealthy, rawConditionStatus, readySyncedStatusLabel } from '../utils';
 import { FailingResource, fetchFailingManagedResource, fetchXRData, resolveXRPlural } from './Detail.utils';
 
 export function ClaimDetail() {
@@ -66,10 +67,7 @@ export function ClaimDetail() {
 
   useEffect(() => {
     if (!xrResourceRefs || !xrConditions) return;
-    const xrFailing = xrConditions.some(
-      (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
-    );
-    if (!xrFailing) {
+    if (isHealthy(xrConditions)) {
       setFailingResource(null);
       return;
     }
@@ -94,16 +92,7 @@ export function ClaimDetail() {
 
   // Prefer the XR's failing condition message — it's more specific (e.g. compose errors,
   // MR sync errors). Fall back to the claim's own conditions.
-  const errorMessage = (() => {
-    if (overallOk) return null;
-    for (const conds of [xrConditions ?? [], conditions]) {
-      const failing = conds.find(
-        (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready') && c.message
-      );
-      if (failing?.message) return failing.message;
-    }
-    return null;
-  })();
+  const errorMessage = overallOk ? null : debugMessage(xrConditions) ?? debugMessage(conditions);
 
   // Link to the specific failing MR; fall back to the XR when no MR is identified yet
   // (e.g. compose errors where no MR has been created).
@@ -113,10 +102,9 @@ export function ClaimDetail() {
       return { routeName: 'crossplane-managed-detail', params: failingResource.routeParams };
     }
     if (xrRef?.apiVersion && xrRef?.name && xrPlural) {
-      const [xrGroup, xrVersion] = xrRef.apiVersion.split('/');
       return {
         routeName: 'crossplane-composite-detail',
-        params: { group: xrGroup, version: xrVersion, plural: xrPlural, name: xrRef.name },
+        params: detailRouteParams(xrRef.apiVersion, xrPlural, xrRef.name),
       };
     }
     return null;
@@ -186,12 +174,11 @@ export function ClaimDetail() {
               value: xrRef?.name ? (
                 <HeadlampLink
                   routeName="crossplane-composite-detail"
-                  params={{
-                    group: xrRef.apiVersion.split('/')[0],
-                    version: xrRef.apiVersion.split('/')[1],
-                    plural: xrPlural ?? xrRef.kind.toLowerCase() + 's',
-                    name: xrRef.name,
-                  }}
+                  params={detailRouteParams(
+                    xrRef.apiVersion,
+                    xrPlural ?? `${(xrRef.kind ?? '').toLowerCase()}s`,
+                    xrRef.name
+                  )}
                 >
                   {xrRef.name}
                 </HeadlampLink>
