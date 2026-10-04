@@ -29,6 +29,7 @@ export function CompositeResourceList() {
       return;
     }
 
+    let cancelled = false;
     Promise.all(
       xrds.map(xrd => {
         const spec = xrd.jsonData.spec;
@@ -53,7 +54,12 @@ export function CompositeResourceList() {
           )
           .catch(() => [] as XRRow[]);
       })
-    ).then(results => setXrs(sortByReady(results.flat())));
+    ).then(results => {
+      if (!cancelled) setXrs(sortByReady(results.flat()));
+    });
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 

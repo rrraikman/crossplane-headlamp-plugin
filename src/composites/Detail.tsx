@@ -11,6 +11,7 @@ import { useParams } from 'react-router-dom';
 import { FailingResource, fetchFailingManagedResource } from '../claims/Detail.utils';
 import { ConditionsTable } from '../components/ConditionsTable';
 import { EventsTable } from '../components/EventsTable';
+import { LoadError } from '../components/LoadError';
 import { ReconcileButton } from '../components/ReconcileButton';
 import { useDynamicKubeList } from '../hooks';
 import { ManagedResources } from '../managed/ManagedResources';
@@ -40,26 +41,23 @@ export function CompositeDetail() {
     const failing = conditions.some(
       (c: any) => c.status !== 'True' && (c.type === 'Synced' || c.type === 'Ready')
     );
-    if (!failing) return;
+    if (!failing) {
+      setFailingResource(null);
+      return;
+    }
     const resourceRefs = xr.spec?.crossplane?.resourceRefs ?? xr.spec?.resourceRefs ?? [];
-    fetchFailingManagedResource(resourceRefs, namespace).then(setFailingResource);
+    let cancelled = false;
+    fetchFailingManagedResource(resourceRefs, namespace).then(r => {
+      if (!cancelled) setFailingResource(r);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [xr, namespace]);
 
   if (!xrs && !error) return <Loader title="Loading..." />;
 
-  if (error || !xr) {
-    return (
-      <>
-        <BackLink />
-        <Box p={2}>
-          <Alert severity="error">
-            Failed to load <strong>{plural}/{namespace ? `${namespace}/` : ''}{name}</strong>
-            {error && `: ${error.message}`}
-          </Alert>
-        </Box>
-      </>
-    );
-  }
+  if (error || !xr) return <LoadError what={`${plural}/${namespace ? `${namespace}/` : ''}${name}`} error={error} />;
 
   const conditions: any[] = xr.status?.conditions ?? [];
   const ready = rawConditionStatus(conditions, 'Ready');
@@ -107,13 +105,13 @@ export function CompositeDetail() {
 
       <SectionBox title={name} headerProps={{
         titleSideActions: [
-          <Chip size="small"
+          <Chip key="status" size="small"
             label={readySyncedStatusLabel(ready, synced)}
             color={overallOk ? 'success' : synced !== 'True' ? 'error' : 'warning'}
           />,
         ],
         actions: [
-          <ReconcileButton resource={xrResource!} />,
+          <ReconcileButton key="reconcile" resource={xrResource!} />,
         ],
       }}>
         <NameValueTable

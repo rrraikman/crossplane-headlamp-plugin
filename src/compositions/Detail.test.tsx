@@ -129,4 +129,11 @@ describe('CompositionDetail', () => {
     render(<CompositionDetail />);
     expect(screen.getByText('No pipeline steps defined')).toBeTruthy();
   });
+
+  test('shows an error instead of loading forever when the composition cannot be fetched', () => {
+    vi.mocked(Composition.useGet).mockReturnValue([null, { message: 'not found' }]);
+    render(<CompositionDetail />);
+    expect(screen.getByText(/Failed to load/)).toBeTruthy();
+    expect(screen.queryByText('Loading...')).toBeNull();
+  });
 });

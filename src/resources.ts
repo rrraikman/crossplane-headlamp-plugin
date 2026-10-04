@@ -42,16 +42,17 @@ export class ConfigurationRevision extends KubeObject {
   static isNamespaced = false;
 }
 
+// Functions were promoted to v1 in Crossplane 1.17; v1beta1 keeps older clusters working.
 export class CrossplaneFunction extends KubeObject {
   static kind = 'Function';
   static apiName = 'functions';
-  static apiVersion = 'pkg.crossplane.io/v1beta1';
+  static apiVersion = ['pkg.crossplane.io/v1', 'pkg.crossplane.io/v1beta1'];
   static isNamespaced = false;
 }
 
 export class CrossplaneFunctionRevision extends KubeObject {
   static kind = 'FunctionRevision';
   static apiName = 'functionrevisions';
-  static apiVersion = 'pkg.crossplane.io/v1beta1';
+  static apiVersion = ['pkg.crossplane.io/v1', 'pkg.crossplane.io/v1beta1'];
   static isNamespaced = false;
 }

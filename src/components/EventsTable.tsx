@@ -27,9 +27,13 @@ export function EventsTable({
       ? `/api/v1/namespaces/${namespace}/events?fieldSelector=${fieldSelector}`
       : `/api/v1/events?fieldSelector=${fieldSelector}`;
 
+    let cancelled = false;
     request(url)
-      .then((data: any) => setEvents(data.items ?? []))
-      .catch(() => setEvents([]));
+      .then((data: any) => !cancelled && setEvents(data.items ?? []))
+      .catch(() => !cancelled && setEvents([]));
+    return () => {
+      cancelled = true;
+    };
   }, [resourceName, resourceKind, namespace]);
 
   const sorted = events ? sortEvents(events) : null;

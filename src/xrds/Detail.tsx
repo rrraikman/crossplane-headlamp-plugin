@@ -11,7 +11,8 @@ import { Box, Chip, Tooltip, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { EventsTable } from '../components/EventsTable';
-import { detailRouteParams } from '../discovery';
+import { LoadError } from '../components/LoadError';
+import { detailRouteParams, parseApiVersion } from '../discovery';
 import { CompositeResourceDefinition, Composition } from '../resources';
 import { age, getReferenceableVersion, rawConditionStatus, StatusChip } from '../utils';
 import { buildNotReadyInstances, debugMessage, NotReadyInstance, sortByReady } from './Detail.utils';
@@ -35,7 +36,7 @@ function MessageCell({ conditions }: { conditions: any[] }) {
 
 export function XRDDetail() {
   const { name } = useParams<{ name: string }>();
-  const [xrd] = CompositeResourceDefinition.useGet(name);
+  const [xrd, xrdError] = CompositeResourceDefinition.useGet(name);
   const [compositions] = Composition.useList();
   const [xrs, setXrs] = useState<any[] | null>(null);
   const [claims, setClaims] = useState<any[] | null>(null);
@@ -48,20 +49,25 @@ export function XRDDetail() {
     const version = getReferenceableVersion(xrd.jsonData.spec);
     const plural = xrd.jsonData.spec.names.plural;
 
+    let cancelled = false;
     request(`/apis/${group}/${version}/${plural}`)
-      .then((data: any) => setXrs(data.items ?? []))
-      .catch(() => setXrs([]));
+      .then((data: any) => !cancelled && setXrs(data.items ?? []))
+      .catch(() => !cancelled && setXrs([]));
 
     if (xrd.jsonData.spec.claimNames?.plural) {
       const claimPlural = xrd.jsonData.spec.claimNames.plural;
       request(`/apis/${group}/${version}/${claimPlural}`)
-        .then((data: any) => setClaims(data.items ?? []))
-        .catch(() => setClaims([]));
+        .then((data: any) => !cancelled && setClaims(data.items ?? []))
+        .catch(() => !cancelled && setClaims([]));
     } else {
       setClaims(null);
     }
+    return () => {
+      cancelled = true;
+    };
   }, [xrd?.metadata.name]);
 
+  if (xrdError) return <LoadError what={name} error={xrdError} />;
   if (!xrd) return <Loader title="Loading..." />;
 
   const spec = xrd.jsonData.spec;
@@ -73,7 +79,9 @@ export function XRDDetail() {
   const relevantCompositions =
     compositions?.filter(c => {
       const ref = c.jsonData.spec?.compositeTypeRef;
-      return ref?.kind === spec.names.kind && ref?.apiVersion?.startsWith(spec.group);
+      return (
+        ref?.kind === spec.names.kind && parseApiVersion(ref?.apiVersion ?? '').group === spec.group
+      );
     }) ?? [];
 
   const notReadyInstances = buildNotReadyInstances(
@@ -159,7 +167,7 @@ export function XRDDetail() {
     <Box pb={6}>
       {/* 1. Metadata */}
       <SectionBox title={name} headerProps={{ titleSideActions: [
-        <Chip size="small" label={established ? 'Established' : 'Not Established'} color={established ? 'success' : 'error'} />,
+        <Chip key="status" size="small" label={established ? 'Established' : 'Not Established'} color={established ? 'success' : 'error'} />,
       ] }}>
         <NameValueTable
           rows={[

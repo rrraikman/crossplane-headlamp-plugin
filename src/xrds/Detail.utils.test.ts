@@ -89,9 +89,27 @@ describe('buildNotReadyInstances', () => {
     expect(buildNotReadyInstances(null, null, 'XDatabase', 'Database')).toEqual([]);
   });
 
-  test('excludes ready instances', () => {
-    const xrs = [makeItem('db1', [{ type: 'Ready', status: 'True' }])];
+  test('excludes ready and synced instances', () => {
+    const xrs = [makeItem('db1', [{ type: 'Ready', status: 'True' }, { type: 'Synced', status: 'True' }])];
     expect(buildNotReadyInstances(xrs, null, 'XDatabase', 'Database')).toEqual([]);
+  });
+
+  test('includes instances that are Ready but not Synced, matching the overview', () => {
+    const xrs = [
+      makeItem('db1', [
+        { type: 'Ready', status: 'True' },
+        { type: 'Synced', status: 'False', reason: 'ReconcileError', message: 'cannot compose' },
+      ]),
+    ];
+    expect(buildNotReadyInstances(xrs, null, 'XDatabase', 'Database')[0]).toMatchObject({
+      reason: 'ReconcileError',
+      message: 'cannot compose',
+    });
+  });
+
+  test('reports the namespace of namespaced XRs', () => {
+    const xrs = [makeItem('web', [{ type: 'Ready', status: 'False' }], 'prod')];
+    expect(buildNotReadyInstances(xrs, null, 'WebService', 'Claim')[0].namespace).toBe('prod');
   });
 
   test('includes not-ready XRs with correct fields', () => {

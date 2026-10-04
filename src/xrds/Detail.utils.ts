@@ -28,6 +28,21 @@ export interface NotReadyInstance {
   message: string;
 }
 
+function isHealthy(conditions: any[]): boolean {
+  return ['Ready', 'Synced'].every(
+    type => conditions?.find((c: any) => c.type === type)?.status === 'True'
+  );
+}
+
+// Synced first: a sync failure is usually the root cause of Ready=False.
+function failingCondition(conditions: any[]): any | undefined {
+  for (const type of ['Synced', 'Ready']) {
+    const cond = conditions?.find((c: any) => c.type === type);
+    if (cond && cond.status !== 'True') return cond;
+  }
+  return undefined;
+}
+
 export function buildNotReadyInstances(
   xrs: any[] | null,
   claims: any[] | null,
@@ -35,34 +50,20 @@ export function buildNotReadyInstances(
   claimKind: string
 ): NotReadyInstance[] {
   const rows: NotReadyInstance[] = [];
-
-  for (const r of xrs ?? []) {
-    const conds = r.status?.conditions ?? [];
-    if (!isReady(conds)) {
-      const failing = conds.find((c: any) => c.status !== 'True');
+  const collect = (items: any[] | null, instanceKind: string) => {
+    for (const r of items ?? []) {
+      const conds = r.status?.conditions ?? [];
+      if (isHealthy(conds)) continue;
       rows.push({
-        instanceKind: xrKind,
-        name: r.metadata.name,
-        namespace: '—',
-        reason: failing?.reason ?? 'Unknown',
-        message: debugMessage(conds) ?? 'No message reported',
-      });
-    }
-  }
-
-  for (const r of claims ?? []) {
-    const conds = r.status?.conditions ?? [];
-    if (!isReady(conds)) {
-      const failing = conds.find((c: any) => c.status !== 'True');
-      rows.push({
-        instanceKind: claimKind,
+        instanceKind,
         name: r.metadata.name,
         namespace: r.metadata.namespace ?? '—',
-        reason: failing?.reason ?? 'Unknown',
+        reason: failingCondition(conds)?.reason ?? 'Unknown',
         message: debugMessage(conds) ?? 'No message reported',
       });
     }
-  }
-
+  };
+  collect(xrs, xrKind);
+  collect(claims, claimKind);
   return rows;
 }

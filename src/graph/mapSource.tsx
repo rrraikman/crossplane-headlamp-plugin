@@ -173,8 +173,16 @@ function useCrossplaneGraphData() {
           .catch(() => []);
       });
 
-    Promise.all(xrPromises).then(results => setXrItems((results as any[][]).flat()));
-    Promise.all(claimPromises).then(results => setClaimItems((results as any[][]).flat()));
+    let cancelled = false;
+    Promise.all(xrPromises).then(results => {
+      if (!cancelled) setXrItems((results as any[][]).flat());
+    });
+    Promise.all(claimPromises).then(results => {
+      if (!cancelled) setClaimItems((results as any[][]).flat());
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xrdsKey]);
 
