@@ -10,6 +10,7 @@ function makeRow(overrides: Partial<ClaimRow> & { name: string }): ClaimRow {
     plural: 'xclaims',
     ready: 'True',
     synced: 'True',
+    message: null,
     creationTimestamp: '2024-01-01T00:00:00Z',
     ...overrides,
   };

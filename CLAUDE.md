@@ -171,6 +171,7 @@ Coverage thresholds (defined in `vitest.config.ts`) are enforced by CI:
 - **React components that don't use `KubeObject`**: render with `@testing-library/react`. Mock `@kinvolk/headlamp-plugin/lib/CommonComponents` and `react-router-dom`. Use `waitFor` for anything triggered by async `useEffect`.
 - **New branches inside existing components** (e.g. a new conditional banner): add a test case to the existing `*.test.tsx` that sets up the mock state that triggers the branch, then asserts the new UI element appears (or doesn't).
 - **Components that import `../resources`**: mock the entire `../resources` module and the `KubeObject` mock from `src/__mocks__/headlamp-k8s-cluster.ts`. Mock any new utility functions (`vi.mock('./Detail.utils', () => ({ myFn: vi.fn() }))`) so async effects resolve synchronously in tests.
+- **Stubbing `useList`/`useGet`**: wrap with `mockedHook(X.useList).mockReturnValue([[fixture], null])` from `src/testing.ts`. Test files are type-checked by `npm run tsc`, and the SDK's real hook return type rejects plain fixtures.
 
 If new code is in a file with low baseline coverage, adding even 2–3 targeted tests for the new branches is usually enough to stay above thresholds.
 
@@ -287,12 +288,12 @@ const resource = discovery.resources.find((r: any) => r.kind === kind && !r.name
 const plural = resource?.name ?? kind.toLowerCase() + 's';
 ```
 
-Use a module-level `Map` to cache these lookups and avoid redundant API calls (see `src/managed/ManagedResources.tsx`).
+Don't hand-roll this: `discoverResource(apiVersion, kind)` in `src/discovery.ts` returns the plural and whether the kind is namespaced, with a module-level cache. Use `parseApiVersion` (handles core `v1`), `resourcePath` and `detailRouteParams` from the same module instead of splitting `apiVersion` yourself.
 
 ### Crossplane API Groups
 
 - `pkg.crossplane.io/v1` — Provider, Configuration, ProviderRevision, ConfigurationRevision
-- `pkg.crossplane.io/v1beta1` — Function, FunctionRevision
+- `pkg.crossplane.io/v1` (since Crossplane 1.17) with `v1beta1` fallback — Function, FunctionRevision
 - `apiextensions.crossplane.io/v1` — CompositeResourceDefinition, Composition
 - XRs and Claims: user-defined group, discovered via XRD `spec.group` + `spec.names.plural`
 
@@ -366,6 +367,12 @@ xr.spec?.crossplane?.claimRef ?? xr.spec?.claimRef
 ```
 
 Without the fallback, these fields will silently return `undefined` on v2 clusters.
+
+### Namespaced XRs and Managed Resources (Crossplane v2)
+
+On v2, XRs default to `Namespaced` and `*.m.*` managed resources are namespaced. The composite and managed detail routes take an optional namespace (`/crossplane/composite/:group/:version/:plural/:namespace?/:name`). Always build their params with `detailRouteParams(apiVersion, plural, name, metadata.namespace)` — it omits the key for cluster-scoped resources. The detail page loads the object through a namespaced class only when the route has a namespace; without it, `KubeObject.patch()` (the Reconcile button) builds a URL with no namespace and 404s.
+
+v2 `resourceRefs` carry no namespace: composed resources live in the XR's namespace. Use `scopeRefs(refs, xr.metadata.namespace)` + `fetchReferencedResources` from `src/managed/ManagedResources.utils.ts` rather than listing cluster-wide and matching by name, which picks up same-named resources from other namespaces.
 
 ### Live Updates via Dynamic KubeObject Classes
 

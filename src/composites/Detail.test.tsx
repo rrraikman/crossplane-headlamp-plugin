@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('./Detail.utils', () => ({
   compositeStatusLabel: vi.fn((ready: string, synced: string) => {
@@ -69,38 +70,38 @@ function makeXR(ready = 'True', synced = 'True') {
 
 describe('CompositeDetail', () => {
   test('shows loader while XR list is loading', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([null, null]);
+    mockedHook(KubeObject.useList).mockReturnValue([null, null]);
     render(<CompositeDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('shows error when XR not found in list', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[], null]);
     render(<CompositeDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
   });
 
   test('renders XR kind and API version when loaded', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeXR()], null]);
     render(<CompositeDetail />);
     expect(screen.getByText('XDatabase')).toBeTruthy();
     expect(screen.getByText('example.io/v1alpha1')).toBeTruthy();
   });
 
   test('shows Ready chip when ready and synced', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeXR()], null]);
     render(<CompositeDetail />);
     expect(screen.getByText('Ready')).toBeTruthy();
   });
 
   test('shows Sync Failed chip when not synced', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR('False', 'False')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeXR('False', 'False')], null]);
     render(<CompositeDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
   });
 
   test('renders a reconcile button', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeXR()], null]);
     render(<CompositeDetail />);
     expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
   });
@@ -113,19 +114,19 @@ describe('CompositeDetail', () => {
       namespace: 'prod',
       name: 'my-xdb',
     });
-    vi.mocked(KubeObject.useList).mockClear();
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    mockedHook(KubeObject.useList).mockClear();
+    mockedHook(KubeObject.useList).mockReturnValue([[makeXR()], null]);
     render(<CompositeDetail />);
     expect(KubeObject.useList).toHaveBeenCalledWith({ namespace: 'prod' });
-    expect((vi.mocked(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(true);
+    expect((mockedHook(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(true);
     expect(screen.getByText('prod')).toBeTruthy();
   });
 
   test('loads a cluster-scoped XR through a cluster-scoped class when the route has no namespace', () => {
-    vi.mocked(KubeObject.useList).mockClear();
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeXR()], null]);
+    mockedHook(KubeObject.useList).mockClear();
+    mockedHook(KubeObject.useList).mockReturnValue([[makeXR()], null]);
     render(<CompositeDetail />);
     expect(KubeObject.useList).toHaveBeenCalledWith(undefined);
-    expect((vi.mocked(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(false);
+    expect((mockedHook(KubeObject.useList).mock.contexts[0] as any).isNamespaced).toBe(false);
   });
 });

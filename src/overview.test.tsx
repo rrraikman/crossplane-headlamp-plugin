@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from './testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -83,19 +84,19 @@ function makeXRD(name: string, condStatus = 'True', withClaimNames = false) {
 
 describe('CrossplaneOverview', () => {
   test('shows loading dashes while resources are loading', () => {
-    vi.mocked(Provider.useList).mockReturnValue([null, null]);
-    vi.mocked(Configuration.useList).mockReturnValue([null, null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([null, null]);
+    mockedHook(Provider.useList).mockReturnValue([null, null]);
+    mockedHook(Configuration.useList).mockReturnValue([null, null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([null, null]);
     render(<CrossplaneOverview />);
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
   test('shows resource counts when resources are loaded', async () => {
-    vi.mocked(Provider.useList).mockReturnValue([[makePackageResource('p1', 'Healthy', 'True')], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[makePackageResource('c1', 'Healthy', 'True')], null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xrd1')], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[makePackageResource('comp1', 'Ready', 'True')], null]);
+    mockedHook(Provider.useList).mockReturnValue([[makePackageResource('p1', 'Healthy', 'True')], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[makePackageResource('c1', 'Healthy', 'True')], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xrd1')], null]);
+    mockedHook(Composition.useList).mockReturnValue([[makePackageResource('comp1', 'Ready', 'True')], null]);
     render(<CrossplaneOverview />);
     await waitFor(() => {
       expect(screen.getAllByText('1').length).toBeGreaterThan(0);
@@ -103,10 +104,10 @@ describe('CrossplaneOverview', () => {
   });
 
   test('shows All resources are ready when everything is healthy', async () => {
-    vi.mocked(Provider.useList).mockReturnValue([[makePackageResource('p1', 'Healthy', 'True')], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[makePackageResource('c1', 'Healthy', 'True')], null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xrd1')], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[makePackageResource('comp1', 'Ready', 'True')], null]);
+    mockedHook(Provider.useList).mockReturnValue([[makePackageResource('p1', 'Healthy', 'True')], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[makePackageResource('c1', 'Healthy', 'True')], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xrd1')], null]);
+    mockedHook(Composition.useList).mockReturnValue([[makePackageResource('comp1', 'Ready', 'True')], null]);
     render(<CrossplaneOverview />);
     await waitFor(() => {
       expect(screen.getByText('All resources are ready')).toBeTruthy();
@@ -114,13 +115,13 @@ describe('CrossplaneOverview', () => {
   });
 
   test('shows not-ready entry when a provider is unhealthy', async () => {
-    vi.mocked(Provider.useList).mockReturnValue([
+    mockedHook(Provider.useList).mockReturnValue([
       [makePackageResource('my-provider', 'Healthy', 'False')],
       null,
     ]);
-    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<CrossplaneOverview />);
     await waitFor(() => {
       expect(screen.getByText('my-provider')).toBeTruthy();
@@ -128,13 +129,13 @@ describe('CrossplaneOverview', () => {
   });
 
   test('surfaces a failing XR as the XR name when it has no claimRef', async () => {
-    vi.mocked(Provider.useList).mockReturnValue([[], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(Provider.useList).mockReturnValue([[], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io')],
       null,
     ]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     mockRequest.mockResolvedValue({
       items: [
         {
@@ -155,13 +156,13 @@ describe('CrossplaneOverview', () => {
   });
 
   test('surfaces a failing XR as the claim name when it has a claimRef', async () => {
-    vi.mocked(Provider.useList).mockReturnValue([[], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(Provider.useList).mockReturnValue([[], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io', 'True', true)],
       null,
     ]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     mockRequest.mockResolvedValue({
       items: [
         {
@@ -184,10 +185,10 @@ describe('CrossplaneOverview', () => {
   });
 
   test('counts managed resources cheaply and only lists populated types for readiness', async () => {
-    vi.mocked(Provider.useList).mockReturnValue([[], null]);
-    vi.mocked(Configuration.useList).mockReturnValue([[], null]);
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(Provider.useList).mockReturnValue([[], null]);
+    mockedHook(Configuration.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     const crd = (plural: string) => ({
       spec: { group: 'aws.io', names: { kind: plural, plural }, versions: [{ name: 'v1', storage: true }] },
     });

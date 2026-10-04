@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib', () => ({
   registerMapSource: vi.fn(),
@@ -61,8 +62,8 @@ describe('registerCrossplaneMapSource', () => {
 
 describe('useCrossplaneGraphData', () => {
   beforeEach(() => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([null, null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([null, null]);
     vi.mocked(request).mockResolvedValue({ items: [] });
   });
 
@@ -73,8 +74,8 @@ describe('useCrossplaneGraphData', () => {
 
   test('returns composition nodes immediately even when XRDs have not loaded yet', async () => {
     const comp = { metadata: { uid: 'comp-uid', name: 'my-composition' } };
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([null, null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
 
     const { result } = renderHook(() => useData());
     await waitFor(() => expect(result.current).not.toBeNull());
@@ -85,8 +86,8 @@ describe('useCrossplaneGraphData', () => {
   });
 
   test('returns empty nodes and edges when cluster has no XRDs', async () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
 
     const { result } = renderHook(() => useData());
     await waitFor(() => expect(result.current).not.toBeNull());
@@ -97,8 +98,8 @@ describe('useCrossplaneGraphData', () => {
 
   test('creates a node for each composition', async () => {
     const comp = { metadata: { uid: 'comp-uid', name: 'my-composition' } };
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
 
     const { result } = renderHook(() => useData());
     await waitFor(() => expect(result.current).not.toBeNull());
@@ -122,8 +123,8 @@ describe('useCrossplaneGraphData', () => {
       },
     };
 
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
     vi.mocked(request).mockResolvedValue({ items: [xrItem] });
 
     const { result } = renderHook(() => useData());
@@ -161,8 +162,8 @@ describe('useCrossplaneGraphData', () => {
       },
     };
 
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     vi.mocked(request)
       .mockResolvedValueOnce({ items: [xrItem] })
       .mockResolvedValueOnce({ items: [claimItem] });
@@ -190,8 +191,8 @@ describe('useCrossplaneGraphData', () => {
       status: { conditions: [] },
     };
 
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
     vi.mocked(request).mockResolvedValue({ items: [xrItem] });
 
     const { result } = renderHook(() => useData());
@@ -217,8 +218,8 @@ describe('useCrossplaneGraphData', () => {
       status: { conditions: [] },
     };
 
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[cacheXrd, dbXrd], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[cacheXrd, dbXrd], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     vi.mocked(request).mockImplementation((path: string) => {
       if (path.endsWith('/xcaches')) return Promise.resolve({ items: [cacheXr] });
       if (path.endsWith('/xdatabases')) return Promise.resolve({ items: [dbXr] });
@@ -241,8 +242,8 @@ describe('useCrossplaneGraphData', () => {
       status: { conditions: [] },
     };
 
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[xrd], null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     vi.mocked(request).mockImplementation((path: string) => {
       if (path.endsWith('/webservices')) return Promise.resolve({ items: [prodXr] });
       if (path === '/apis/apps/v1') {

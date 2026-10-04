@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   Composition: { useGet: vi.fn().mockReturnValue([null, null]) },
@@ -68,13 +69,13 @@ function makeComposition(overrides: any = {}) {
 
 describe('CompositionDetail', () => {
   test('shows loader while composition is loading', () => {
-    vi.mocked(Composition.useGet).mockReturnValue([null, null]);
+    mockedHook(Composition.useGet).mockReturnValue([null, null]);
     render(<CompositionDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('renders composite type and mode', () => {
-    vi.mocked(Composition.useGet).mockReturnValue([makeComposition(), null]);
+    mockedHook(Composition.useGet).mockReturnValue([makeComposition(), null]);
     render(<CompositionDetail />);
     expect(screen.getByText('example.io/v1 / XDatabase')).toBeTruthy();
     expect(screen.getByText('Resources')).toBeTruthy();
@@ -85,7 +86,7 @@ describe('CompositionDetail', () => {
       mode: 'Pipeline',
       pipeline: [{ step: 'patch-and-transform', functionRef: { name: 'function-patch-and-transform' } }],
     });
-    vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
+    mockedHook(Composition.useGet).mockReturnValue([comp, null]);
     render(<CompositionDetail />);
     expect(screen.getByText('patch-and-transform')).toBeTruthy();
     expect(screen.getByText('function-patch-and-transform')).toBeTruthy();
@@ -96,7 +97,7 @@ describe('CompositionDetail', () => {
       mode: 'Pipeline',
       pipeline: [{ step: 'my-step' }],
     });
-    vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
+    mockedHook(Composition.useGet).mockReturnValue([comp, null]);
     render(<CompositionDetail />);
     expect(screen.getByText('my-step')).toBeTruthy();
     expect(screen.queryByText('—')).toBeNull();
@@ -110,14 +111,14 @@ describe('CompositionDetail', () => {
         { step: 'step-two', functionRef: { name: 'fn-two' } },
       ],
     });
-    vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
+    mockedHook(Composition.useGet).mockReturnValue([comp, null]);
     render(<CompositionDetail />);
     const arrows = screen.getAllByTestId('icon-mdi:arrow-down');
     expect(arrows).toHaveLength(1);
   });
 
   test('renders resources table when mode is Resources', () => {
-    vi.mocked(Composition.useGet).mockReturnValue([makeComposition(), null]);
+    mockedHook(Composition.useGet).mockReturnValue([makeComposition(), null]);
     render(<CompositionDetail />);
     expect(screen.getByText('rds')).toBeTruthy();
     expect(screen.getByText('RDSInstance')).toBeTruthy();
@@ -125,13 +126,13 @@ describe('CompositionDetail', () => {
 
   test('shows empty pipeline message when pipeline is empty', () => {
     const comp = makeComposition({ mode: 'Pipeline', pipeline: [] });
-    vi.mocked(Composition.useGet).mockReturnValue([comp, null]);
+    mockedHook(Composition.useGet).mockReturnValue([comp, null]);
     render(<CompositionDetail />);
     expect(screen.getByText('No pipeline steps defined')).toBeTruthy();
   });
 
   test('shows an error instead of loading forever when the composition cannot be fetched', () => {
-    vi.mocked(Composition.useGet).mockReturnValue([null, { message: 'not found' }]);
+    mockedHook(Composition.useGet).mockReturnValue([null, { message: 'not found' }]);
     render(<CompositionDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
     expect(screen.queryByText('Loading...')).toBeNull();

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('./Detail.utils', () => ({
   fetchXRData: vi.fn().mockResolvedValue({ resourceRefs: [], conditions: [] }),
@@ -71,38 +72,38 @@ function makeClaim(ready = 'True', synced = 'True', message = '') {
 
 describe('ClaimDetail', () => {
   test('shows loader while claim list is loading', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([null, null]);
+    mockedHook(KubeObject.useList).mockReturnValue([null, null]);
     render(<ClaimDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('shows error when claim not found in list', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[], null]);
     render(<ClaimDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
   });
 
   test('renders claim namespace and kind when loaded', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
     render(<ClaimDetail />);
     expect(screen.getByText('Database')).toBeTruthy();
     expect(screen.getByText('default')).toBeTruthy();
   });
 
   test('shows Ready chip when ready and synced', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
     render(<ClaimDetail />);
     expect(screen.getByText('Ready')).toBeTruthy();
   });
 
   test('shows Sync Failed chip when not synced', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim('False', 'False')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim('False', 'False')], null]);
     render(<ClaimDetail />);
     expect(screen.getByText('Sync Failed')).toBeTruthy();
   });
 
   test('renders a reconcile button', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim()], null]);
     render(<ClaimDetail />);
     expect(screen.getByRole('button', { name: 'Trigger reconcile' })).toBeTruthy();
   });
@@ -112,7 +113,7 @@ describe('ClaimDetail', () => {
       resourceRefs: [],
       conditions: [{ type: 'Ready', status: 'False', message: 'cannot compose resources: provider error' }],
     });
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim('False', 'True')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim('False', 'True')], null]);
     render(<ClaimDetail />);
     await waitFor(() => {
       expect(screen.getByText('cannot compose resources: provider error')).toBeTruthy();
@@ -121,7 +122,7 @@ describe('ClaimDetail', () => {
 
   test('falls back to claim condition message when XR has no message', async () => {
     vi.mocked(fetchXRData).mockResolvedValueOnce({ resourceRefs: [], conditions: [] });
-    vi.mocked(KubeObject.useList).mockReturnValue([
+    mockedHook(KubeObject.useList).mockReturnValue([
       [makeClaim('False', 'True', 'claim-level error message')],
       null,
     ]);
@@ -141,7 +142,7 @@ describe('ClaimDetail', () => {
       name: 'my-rds',
       routeParams: { group: 'aws.io', version: 'v1beta1', plural: 'rdsinstances', name: 'my-rds' },
     });
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim('False', 'True')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim('False', 'True')], null]);
     render(<ClaimDetail />);
     await waitFor(() => {
       expect(screen.getByText('rds provisioning failed')).toBeTruthy();
@@ -149,7 +150,7 @@ describe('ClaimDetail', () => {
   });
 
   test('no error banner when claim is ready', () => {
-    vi.mocked(KubeObject.useList).mockReturnValue([[makeClaim('True', 'True')], null]);
+    mockedHook(KubeObject.useList).mockReturnValue([[makeClaim('True', 'True')], null]);
     render(<ClaimDetail />);
     expect(screen.queryByRole('alert')).toBeNull();
   });

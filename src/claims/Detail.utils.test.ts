@@ -131,7 +131,7 @@ describe('fetchFailingManagedResource', () => {
   });
 
   test('skips ref with missing apiVersion and returns null', async () => {
-    const result = await fetchFailingManagedResource([{ kind: 'RDSInstance', name: 'my-rds' }]);
+    const result = await fetchFailingManagedResource([{ kind: 'RDSInstance', name: 'my-rds' } as any]);
     expect(result).toBeNull();
   });
 

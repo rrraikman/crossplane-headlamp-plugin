@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('../resources', () => ({
   CompositeResourceDefinition: { useList: vi.fn().mockReturnValue([null, null]) },
@@ -50,13 +51,13 @@ function makeXRD(name: string, kind = 'XDatabase', claimKind = 'Database') {
 
 describe('XRDList', () => {
   test('shows empty message when no XRDs', () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[], null]);
     render(<XRDList />);
     expect(screen.getByText('No composite resource definitions found')).toBeTruthy();
   });
 
   test('renders XRD names and groups', () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([
       [makeXRD('xdatabases.example.io'), makeXRD('xnetworks.example.io', 'XNetwork', 'Network')],
       null,
     ]);
@@ -66,7 +67,7 @@ describe('XRDList', () => {
   });
 
   test('renders kind and claim kind columns', () => {
-    vi.mocked(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xdbs.example.io')], null]);
+    mockedHook(CompositeResourceDefinition.useList).mockReturnValue([[makeXRD('xdbs.example.io')], null]);
     render(<XRDList />);
     expect(screen.getByText('XDatabase')).toBeTruthy();
     expect(screen.getByText('Database')).toBeTruthy();

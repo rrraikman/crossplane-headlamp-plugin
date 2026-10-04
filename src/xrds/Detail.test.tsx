@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
+import { mockedHook } from '../testing';
 
 vi.mock('@kinvolk/headlamp-plugin/lib/ApiProxy', () => ({
   request: vi.fn().mockResolvedValue({ items: [] }),
@@ -75,22 +76,22 @@ function makeXRD(overrides: any = {}) {
 
 describe('XRDDetail', () => {
   test('shows loader while XRD is loading', () => {
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([null, null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([null, null]);
     render(<XRDDetail />);
     expect(screen.getByText('Loading...')).toBeTruthy();
   });
 
   test('renders XRD group and kind when loaded', () => {
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<XRDDetail />);
     expect(screen.getByText('example.io')).toBeTruthy();
     expect(screen.getByText('XDatabase')).toBeTruthy();
   });
 
   test('shows Established chip when established', () => {
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<XRDDetail />);
     expect(screen.getByText('Established')).toBeTruthy();
   });
@@ -98,8 +99,8 @@ describe('XRDDetail', () => {
   test('shows Not Established chip when not established', () => {
     const xrd = makeXRD();
     xrd.jsonData.status.conditions = [{ type: 'Established', status: 'False' }];
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([xrd, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([xrd, null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<XRDDetail />);
     expect(screen.getByText('Not Established')).toBeTruthy();
   });
@@ -120,8 +121,8 @@ describe('XRDDetail', () => {
         },
       ],
     });
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([xrd, null]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([xrd, null]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<XRDDetail />);
     expect(screen.getByText('Schema (v1alpha1)')).toBeTruthy();
     expect(screen.getByTestId('schema-tree')).toBeTruthy();
@@ -132,15 +133,15 @@ describe('XRDDetail', () => {
       metadata: { name: 'xdb-composition', creationTimestamp: '2024-01-01T00:00:00Z' },
       jsonData: { spec: { compositeTypeRef: { kind: 'XDatabase', apiVersion: 'example.io/v1alpha1' } } },
     };
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
     render(<XRDDetail />);
     expect(screen.getByText('xdb-composition')).toBeTruthy();
   });
 
   test('shows an error instead of loading forever when the XRD cannot be fetched', () => {
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([null, { message: 'forbidden' }]);
-    vi.mocked(Composition.useList).mockReturnValue([[], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([null, { message: 'forbidden' }]);
+    mockedHook(Composition.useList).mockReturnValue([[], null]);
     render(<XRDDetail />);
     expect(screen.getByText(/Failed to load/)).toBeTruthy();
     expect(screen.getByText(/forbidden/)).toBeTruthy();
@@ -152,8 +153,8 @@ describe('XRDDetail', () => {
       metadata: { name: 'lookalike-composition', creationTimestamp: '2024-01-01T00:00:00Z' },
       jsonData: { spec: { compositeTypeRef: { kind: 'XDatabase', apiVersion: 'example.ioextra/v1alpha1' } } },
     };
-    vi.mocked(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
-    vi.mocked(Composition.useList).mockReturnValue([[comp], null]);
+    mockedHook(CompositeResourceDefinition.useGet).mockReturnValue([makeXRD(), null]);
+    mockedHook(Composition.useList).mockReturnValue([[comp], null]);
     render(<XRDDetail />);
     expect(screen.queryByText('lookalike-composition')).toBeNull();
   });
